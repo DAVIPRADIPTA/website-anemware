@@ -1,0 +1,48 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('doctor.dashboard') }}">Panel Dokter</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggler">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarToggler">
+            <ul class="navbar-nav me-auto mb-2">
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('doctor.dashboard') }}">Dashboard</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {% if not doctor.is_verified %}disabled{% endif %}" href="#">
+                        Konsultasi
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {% if not doctor.is_verified %}disabled{% endif %}"
+                        href="{{ url_for('doctor_article.list_articles') }}">
+                        Artikel Saya
+                    </a>
+                </li>
+
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('doctor.verification') }}">
+                        Upload Verifikasi
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        Pengaturan Profil
+                    </a>
+                </li>
+            </ul>
+
+            <span class="text-white me-3">{{ doctor.full_name }}</span>
+            <a href="{{ url_for('web_auth.logout') }}" class="btn btn-light btn-sm">Logout</a>
+
+        </div>
+    </div>
+</nav>

@@ -1,0 +1,48 @@
+# --- Python & System ---
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+Thumbs.db
+
+# --- Virtual Environment (WAJIB DI-IGNORE) ---
+# Folder ini isinya ribuan file library, tidak perlu naik ke Git
+venv/
+env/
+.venv/
+
+# --- Environment Variables (SANGAT PENTING / KEAMANAN) ---
+# Berisi Server Key Midtrans & Database Password. JANGAN PERNAH UPLOAD INI.
+.env
+serviceAccountKey.json
+
+# --- Database ---
+# Folder instance biasanya berisi DB SQLite lokal (jika ada sisa)
+instance/
+*.sqlite3
+*.db
+
+# --- Media / Uploads ---
+# Jangan upload gambar hasil tes user ke GitHub
+app/static/uploads/*
+# Kecuali file .gitkeep (jika ada, biar foldernya tetap ada)
+!app/static/uploads/.gitkeep
+
+# --- AI Models (Large Files) ---
+# GitHub menolak file > 100MB. Model AI biasanya besar.
+# Sebaiknya model di-upload manual ke server atau pakai Git LFS.
+*.keras
+*.h5
+*.pb
+app/model/*.keras
+app/model/*.zip
+
+# --- IDE / Editor Settings ---
+.vscode/
+.idea/
+
+# --- Testing & Junk Files ---
+# File gambar sisa testing di root folder
+*.jpg
+*.jpeg
+*.png

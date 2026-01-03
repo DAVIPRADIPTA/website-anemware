@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Dokter</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f4f6f9;
+        }
+
+        .card {
+            border-radius: 12px;
+        }
+
+        .feature-card {
+            opacity: 1;
+            transition: 0.3s;
+        }
+
+        .feature-card.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include "web/doctor/_navbar.html" %}
+
+    <div class="container mt-4">
+
+        <!-- ALERT VERIFIKASI -->
+        {% if not doctor.is_verified %}
+        <div class="alert alert-warning">
+            <strong>Akun belum terverifikasi!</strong><br>
+            Silakan upload dokumen STR/SIP Anda:
+            <a href="{{ url_for('doctor.verification') }}" class="alert-link">Upload di sini</a>.
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            Akun Anda telah <strong>tererifikasi</strong>. Semua fitur telah aktif.
+        </div>
+        {% endif %}
+
+        <!-- DASHBOARD CARDS -->
+        <div class="row g-4">
+
+            <!-- Artikel -->
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3 feature-card {% if not doctor.is_verified %}disabled{% endif %}">
+                    <h5>Artikel Saya</h5>
+                    <p>Total artikel: <strong>{{ total_articles }}</strong></p>
+                    <a href="{{ url_for('doctor_article.list_articles') }}"
+                        class="btn btn-success btn-sm {% if not doctor.is_verified %}disabled{% endif %}">
+                        Kelola Artikel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Konsultasi -->
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3 feature-card {% if not doctor.is_verified %}disabled{% endif %}">
+                    <h5>Konsultasi</h5>
+                    <p>Total konsultasi: <strong>{{ total_consultations }}</strong></p>
+                    <a href="{{ url_for('doctor_consult.list_consultations') }}" class="btn btn-success btn-sm ">Lihat Konsultasi</a>
+                </div>
+            </div>
+
+            <!-- Saldo -->
+            <div class="col-md-4">
+                <div class="card shadow-sm p-3 feature-card">
+                    <h5>Saldo Dokter</h5>
+                    <p><strong>Rp {{ doctor.balance or 0 }}</strong></p>
+
+                    {% if doctor.is_verified %}
+                    <a href="#" class="btn btn-primary btn-sm disabled">Withdraw</a>
+                    {% else %}
+                    <span class="text-muted">Fitur withdraw aktif setelah akun diverifikasi.</span>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

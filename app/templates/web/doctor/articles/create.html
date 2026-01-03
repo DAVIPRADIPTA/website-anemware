@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buat Artikel Baru</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-4">
+    <h2>Buat Artikel Baru</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <div class="mb-3">
+            <label class="form-label">Judul</label>
+            <input type="text" class="form-control" name="title" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Konten</label>
+            <textarea class="form-control" rows="6" name="content" required></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Tags (opsional)</label>
+            <input type="text" class="form-control" name="tags">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Gambar Header (opsional)</label>
+            <input type="file" class="form-control" name="image">
+        </div>
+
+        <button class="btn btn-success">Simpan</button>
+        <a href="{{ url_for('doctor_article.list_articles') }}" class="btn btn-secondary">Kembali</a>
+
+    </form>
+</div>
+
+</body>
+</html>

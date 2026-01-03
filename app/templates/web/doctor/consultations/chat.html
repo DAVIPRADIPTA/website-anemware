@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chat Konsultasi</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <style>
+        body {
+            background: #e5ddd5;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        /* WhatsApp background */
+        #chat-box {
+            height: 75vh;
+            overflow-y: auto;
+            padding: 20px;
+            background: url("https://i.imgur.com/5u1YIPh.png");
+            background-size: cover;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Bubble Basic Style */
+        .bubble {
+            max-width: 65%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 15px;
+            line-height: 1.4;
+            position: relative;
+            animation: fadeIn 0.2s ease-in;
+        }
+
+        /* Bubble Sent (Doctor) */
+        .me {
+            background: #d4f8c4;
+            /* WA green bubble */
+            margin-left: auto;
+            border-top-right-radius: 0px;
+        }
+
+        /* Bubble Received (Patient) */
+        .other {
+            background: #ffffff;
+            margin-right: auto;
+            border-top-left-radius: 0px;
+        }
+
+        /* Timestamp */
+        .timestamp {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        /* Input Bar */
+        #chat-input-bar {
+            margin-top: 10px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #chat-input {
+            flex: 1;
+            border-radius: 20px;
+            padding-left: 15px;
+            border: 1px solid #ccc;
+        }
+
+        #send-btn {
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            background: #128c7e;
+            border: none;
+            color: white;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tail chat untuk bubble dokter (kanan) */
+        .me::after {
+            content: "";
+            position: absolute;
+            right: -8px;
+            top: 0;
+            width: 0;
+            height: 0;
+            border-top: 10px solid #d4f8c4;
+            border-left: 10px solid transparent;
+        }
+
+        /* Tail chat untuk bubble pasien (kiri) */
+        .other::after {
+            content: "";
+            position: absolute;
+            left: -8px;
+            top: 0;
+            width: 0;
+            height: 0;
+            border-top: 10px solid #ffffff;
+            border-right: 10px solid transparent;
+        }
+
+        @keyframes tail-pop {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .bubble::after {
+            animation: tail-pop 0.2s ease-out;
+        }
+    </style>
+
+
+</head>
+
+<body>
+
+    {% include "web/doctor/_navbar.html" %}
+
+    <div class="container mt-4">
+
+        <div style="background:#128C7E; padding:12px; color:white; font-size:18px;">
+            Chat dengan {{ consultation.patient.full_name }}
+        </div>
+
+
+        <div id="chat-box" class="mb-3">
+            {% for m in messages %}
+            {% if m.sender_id == current_user.id %}
+            <div class="bubble me">
+                {{ m.message }}
+                <div class="timestamp">
+                    {{ m.created_at.strftime("%H:%M") }}
+                </div>
+            </div>
+            {% else %}
+            <div class="bubble other">
+                {{ m.message }}
+                <div class="timestamp">
+                    {{ m.created_at.strftime("%H:%M") }}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+
+        <!-- INPUT PESAN -->
+        <div id="chat-input-bar">
+            <input type="text" id="chat-input" class="form-control" placeholder="Ketik pesan..." required>
+            <button id="send-btn">➤</button>
+        </div>
+
+
+
+    </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const socket = io();
+
+        const consultationId = "{{ consultation.id }}";
+        const room = "consultation_" + consultationId;
+
+        socket.emit("join", { room: room });
+
+        const CURRENT_USER_ID = {{ current_user.id }};
+        const PATIENT_NAME = {{ consultation.patient.full_name|tojson }};
+
+        const chatBox = document.getElementById("chat-box");
+
+        // Auto-scroll ke bawah saat halaman pertama kali dibuka
+        chatBox.scrollTo({
+            top: chatBox.scrollHeight,
+            behavior: "smooth"
+        });
+
+        // Listener pesan baru
+        socket.on("new_message", function (msg) {
+            const bubble = document.createElement("div");
+            bubble.className = "bubble " + (msg.sender_id == CURRENT_USER_ID ? "me" : "other");
+
+            bubble.innerHTML = `
+                ${msg.message}
+                <div class="timestamp">
+                    ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+            `;
+
+            chatBox.appendChild(bubble);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        // Klik tombol kirim
+        document.getElementById("send-btn").addEventListener("click", function (e) {
+            e.preventDefault();
+
+            let message = document.getElementById("chat-input").value.trim();
+            if (!message) return;
+
+            fetch(`/doctor/consultations/${consultationId}/send`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: message })
+            }).then(res => {
+                if (!res.ok) console.log("Gagal kirim pesan");
+            });
+
+            document.getElementById("chat-input").value = "";
+        });
+
+        // Tekan Enter untuk kirim
+        document.getElementById("chat-input").addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                document.getElementById("send-btn").click();
+            }
+        });
+
+        // Test: pastikan button hidup
+        // (boleh dihapus nanti)
+        document.getElementById("send-btn").addEventListener("click", function () {
+            console.log("Button clicked");
+        });
+    });
+</script>
+
+
+</body>
+
+</html>
