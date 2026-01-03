@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY')
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
@@ -23,7 +23,7 @@ class Config:
 
     # === Chatbot / Unsloth ===
     BASE_MODEL_NAME = "unsloth/Llama-3.2-3B-Instruct-bnb-4bit"
-    LORA_PATH = "lora_adapter_3b"   # path folder adapter kamu
+     LORA_PATH = os.path.join(BASE_DIR, "app", "model", "model_3b_anemia")   # path folder adapter kamu
     MAX_NEW_TOKENS = 256
     TEMPERATURE = 0.7
     TOP_P = 0.9
