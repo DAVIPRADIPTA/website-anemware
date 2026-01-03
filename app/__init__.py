@@ -33,7 +33,7 @@ def create_app(config_class=Config):
         lora_path=app.config["LORA_PATH"],
         max_seq_length=2048,
     )
-    engine.load()
+    # engine.load()
     app.extensions["llm_engine"] = engine
 
     # Register blueprints
