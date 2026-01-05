@@ -51,7 +51,7 @@ def chat(id):
     messages = ChatMessage.query.filter_by(
         consultation_id=id
     ).order_by(ChatMessage.created_at.asc()).all()
-
+    
     return render_template(
         "web/doctor/consultations/chat.html",
         consultation=consultation,
@@ -64,8 +64,9 @@ def chat(id):
 # KIRIM PESAN DARI WEB DOKTER
 # ===========================
 @doctor_consult_bp.route("/<int:id>/send", methods=["POST"])
-@login_required
+@firebase_web_required(roles=["DOKTER"])
 def send_message_web(id):
+    current_user = request.current_user
     if current_user.role != "DOKTER":
         return {"status": "error", "message": "Unauthorized"}, 403
 

@@ -1,0 +1,63 @@
+{# templates/web/doctor/_sidebar.html #}
+{% set ep = request.endpoint or '' %}
+{% set verified = doctor.is_verified if doctor is defined and doctor else false %}
+
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <div class="brand">
+      <div class="brand-badge">D</div>
+      <div class="brand-text">
+        <h5>Doctor Panel</h5>
+        <small>Konsultasi & Artikel</small>
+      </div>
+    </div>
+
+    <button class="toggle-btn" id="sidebarToggle" type="button" aria-label="Toggle sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+  </div>
+
+  <div class="nav-section-title">Menu</div>
+
+  <a href="{{ url_for('doctor.dashboard') }}"
+     class="side-link {% if ep == 'doctor.dashboard' %}active{% endif %}">
+    <i class="bi bi-speedometer2"></i>
+    <span>Dashboard</span>
+  </a>
+
+  <a href="{{ url_for('doctor_consult.list_consultations') }}"
+     class="side-link {% if not verified %}disabled{% endif %} {% if ep.startswith('doctor_consult.') %}active{% endif %}">
+    <i class="bi bi-chat-dots"></i>
+    <span>Konsultasi</span>
+    {% if not verified %}<span class="lock ms-auto"><i class="bi bi-lock-fill"></i></span>{% endif %}
+  </a>
+
+  <a href="{{ url_for('doctor_article.list_articles') }}"
+     class="side-link {% if not verified %}disabled{% endif %} {% if ep.startswith('doctor_article.') %}active{% endif %}">
+    <i class="bi bi-newspaper"></i>
+    <span>Artikel Saya</span>
+    {% if not verified %}<span class="lock ms-auto"><i class="bi bi-lock-fill"></i></span>{% endif %}
+  </a>
+
+  <a href="{{ url_for('doctor.verification') }}"
+     class="side-link {% if ep.startswith('doctor.verification') or ep == 'doctor.verification' %}active{% endif %}">
+    <i class="bi bi-patch-check"></i>
+    <span>Upload Verifikasi</span>
+  </a>
+
+  <a href="#" class="side-link disabled">
+    <i class="bi bi-gear"></i>
+    <span>Pengaturan Profil</span>
+    <span class="lock ms-auto"><i class="bi bi-wrench-adjustable"></i></span>
+  </a>
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="hello">Halo,</div>
+      <div class="name">{{ doctor.full_name if doctor else '' }}</div>
+    </div>
+    <a href="{{ url_for('web_auth.logout') }}" class="btn btn-light btn-sm">
+      <i class="bi bi-box-arrow-right me-1"></i>Logout
+    </a>
+  </div>
+</aside>

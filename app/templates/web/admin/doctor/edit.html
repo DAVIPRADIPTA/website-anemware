@@ -1,0 +1,152 @@
+{# templates/web/admin/doctor/edit.html #}
+{% extends "web/admin/_layout.html" %}
+
+{% block title %}Edit Dokter{% endblock %}
+
+{% block head_extra %}
+<style>
+  .form-card {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--surface);
+  }
+
+  .form-card .card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 18px;
+  }
+
+  .form-card .card-body {
+    padding: 18px;
+  }
+
+  .form-label {
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .hint {
+    color: var(--muted);
+    font-size: .9rem;
+    margin-top: 4px;
+  }
+
+  .pill {
+    border-radius: 999px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    background: #f3f4f6;
+    font-weight: 700;
+    font-size: .85rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h2>Edit Data Dokter</h2>
+      <p>Perbarui profil dokter, harga konsultasi, dan status verifikasi.</p>
+    </div>
+  </div>
+
+  <div class="card form-card">
+    <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-dark" style="border-radius:999px;">
+          <i class="bi bi-person-gear me-1"></i> Edit
+        </span>
+
+        <span class="pill">
+          <i class="bi bi-envelope me-1"></i>{{ doctor.email }}
+        </span>
+
+        {% if doctor.is_verified %}
+          <span class="badge bg-success" style="border-radius:999px;">
+            <i class="bi bi-patch-check me-1"></i>Terverifikasi
+          </span>
+        {% else %}
+          <span class="badge bg-danger" style="border-radius:999px;">
+            <i class="bi bi-x-circle me-1"></i>Belum
+          </span>
+        {% endif %}
+      </div>
+
+      <a href="{{ url_for('admin.doctors') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Kembali
+      </a>
+    </div>
+
+    <div class="card-body">
+      <form method="POST">
+        <div class="row g-3">
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Nama Lengkap</label>
+            <input type="text" name="full_name" class="form-control" value="{{ doctor.full_name }}" required>
+            <div class="hint">Nama yang ditampilkan di profil dokter.</div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ doctor.email }}" required>
+            <div class="hint">Email untuk login / komunikasi.</div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Spesialisasi</label>
+            <input type="text" name="specialization" class="form-control" value="{{ doctor.specialization or '' }}">
+            <div class="hint">Contoh: Penyakit Dalam, Gizi Klinis, dsb.</div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Harga Konsultasi (Rp)</label>
+            <input type="number" name="consultation_price" class="form-control" value="{{ doctor.consultation_price or 0 }}" min="0">
+            <div class="hint">Masukkan angka tanpa titik/koma (mis. 50000).</div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Bio</label>
+            <textarea name="bio" class="form-control" rows="4">{{ doctor.bio or '' }}</textarea>
+            <div class="hint">Ringkasan profil dokter (opsional).</div>
+          </div>
+
+          <div class="col-12">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_verified" id="is_verified"
+                     {% if doctor.is_verified %}checked{% endif %}>
+              <label class="form-check-label fw-bold" for="is_verified">
+                Tandai sebagai TERVERIFIKASI
+              </label>
+            </div>
+            <div class="hint">Jika dicentang, dokter dianggap sudah lolos verifikasi admin.</div>
+          </div>
+
+          <div class="col-12">
+            <hr class="my-2">
+            <div class="actions">
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-check2-circle me-1"></i> Simpan Perubahan
+              </button>
+
+              <a href="{{ url_for('admin.doctors') }}" class="btn btn-secondary">
+                <i class="bi bi-x-circle me-1"></i> Batal
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

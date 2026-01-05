@@ -1,93 +1,147 @@
-<!DOCTYPE html>
-<html lang="en">
+{# templates/web/doctor/dashboard.html #}
+{% extends "web/doctor/_layout.html" %}
+{% block title %}Dashboard Dokter{% endblock %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard Dokter</title>
+{% block head_extra %}
+<style>
+  .feature-card{
+    border-radius:16px;
+    border:1px solid var(--border);
+    box-shadow:var(--shadow);
+    background:var(--surface);
+    padding:16px;
+    transition:transform .15s ease, box-shadow .15s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .feature-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 16px 36px rgba(0,0,0,.10);
+  }
+  .feature-card.disabled{
+    opacity:.45;
+    pointer-events:none;
+  }
+  .feature-top{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    margin-bottom:10px;
+  }
+  .feature-title{ margin:0; font-weight:900; }
+  .feature-sub{ margin:2px 0 0; color:var(--muted); font-size:.9rem; }
+  .feature-value{ font-weight:950; font-size:1.8rem; margin-top:12px; letter-spacing:-.02em; }
+  .feature-icon{
+    width:44px; height:44px; border-radius:14px;
+    border:1px solid var(--border);
+    background:#f3f4f6;
+    display:grid; place-items:center;
+    color:#111827;
+  }
+  .feature-icon i{ font-size:1.25rem; }
+  .feature-card::after{
+    content:"";
+    position:absolute;
+    inset:auto -40px -40px auto;
+    width:150px; height:150px;
+    background:radial-gradient(circle at 30% 30%, rgba(22,163,74,.18), transparent 60%);
+    transform:rotate(12deg);
+  }
+</style>
+{% endblock %}
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h2>Dashboard Dokter</h2>
+      <p>Ringkasan aktivitas dan akses fitur.</p>
+    </div>
+  </div>
 
-    <style>
-        body {
-            background-color: #f4f6f9;
-        }
-
-        .card {
-            border-radius: 12px;
-        }
-
-        .feature-card {
-            opacity: 1;
-            transition: 0.3s;
-        }
-
-        .feature-card.disabled {
-            opacity: 0.4;
-            pointer-events: none;
-        }
-    </style>
-</head>
-
-<body>
-
-    {% include "web/doctor/_navbar.html" %}
-
-    <div class="container mt-4">
-
-        <!-- ALERT VERIFIKASI -->
-        {% if not doctor.is_verified %}
-        <div class="alert alert-warning">
-            <strong>Akun belum terverifikasi!</strong><br>
-            Silakan upload dokumen STR/SIP Anda:
-            <a href="{{ url_for('doctor.verification') }}" class="alert-link">Upload di sini</a>.
+  {% if not doctor.is_verified %}
+    <div class="alert alert-warning panel-card mb-3">
+      <div class="d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-triangle fs-5"></i>
+        <div>
+          <div class="fw-bold">Akun belum terverifikasi!</div>
+          <div class="text-muted">
+            Silakan upload dokumen STR/SIP Anda untuk mengaktifkan fitur konsultasi & artikel.
+            <a href="{{ url_for('doctor.verification') }}" class="fw-bold text-decoration-none">Upload di sini</a>.
+          </div>
         </div>
-        {% else %}
-        <div class="alert alert-success">
-            Akun Anda telah <strong>tererifikasi</strong>. Semua fitur telah aktif.
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-success panel-card mb-3">
+      <div class="d-flex align-items-start gap-2">
+        <i class="bi bi-patch-check fs-5"></i>
+        <div>
+          Akun Anda telah <strong>terverifikasi</strong>. Semua fitur telah aktif.
         </div>
-        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 
-        <!-- DASHBOARD CARDS -->
-        <div class="row g-4">
-
-            <!-- Artikel -->
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3 feature-card {% if not doctor.is_verified %}disabled{% endif %}">
-                    <h5>Artikel Saya</h5>
-                    <p>Total artikel: <strong>{{ total_articles }}</strong></p>
-                    <a href="{{ url_for('doctor_article.list_articles') }}"
-                        class="btn btn-success btn-sm {% if not doctor.is_verified %}disabled{% endif %}">
-                        Kelola Artikel
-                    </a>
-                </div>
-            </div>
-
-            <!-- Konsultasi -->
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3 feature-card {% if not doctor.is_verified %}disabled{% endif %}">
-                    <h5>Konsultasi</h5>
-                    <p>Total konsultasi: <strong>{{ total_consultations }}</strong></p>
-                    <a href="{{ url_for('doctor_consult.list_consultations') }}" class="btn btn-success btn-sm ">Lihat Konsultasi</a>
-                </div>
-            </div>
-
-            <!-- Saldo -->
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3 feature-card">
-                    <h5>Saldo Dokter</h5>
-                    <p><strong>Rp {{ doctor.balance or 0 }}</strong></p>
-
-                    {% if doctor.is_verified %}
-                    <a href="#" class="btn btn-primary btn-sm disabled">Withdraw</a>
-                    {% else %}
-                    <span class="text-muted">Fitur withdraw aktif setelah akun diverifikasi.</span>
-                    {% endif %}
-                </div>
-            </div>
-
+  <div class="row g-3 g-lg-4">
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card {% if not doctor.is_verified %}disabled{% endif %}">
+        <div class="feature-top">
+          <div>
+            <h5 class="feature-title">Artikel Saya</h5>
+            <div class="feature-sub">Kelola konten edukasi</div>
+          </div>
+          <div class="feature-icon"><i class="bi bi-newspaper"></i></div>
         </div>
+
+        <div class="feature-value">{{ total_articles }}</div>
+        <div class="text-muted mb-3">Total artikel</div>
+
+        <a href="{{ url_for('doctor_article.list_articles') }}"
+           class="btn btn-success btn-sm {% if not doctor.is_verified %}disabled{% endif %}">
+          <i class="bi bi-pencil-square me-1"></i>Kelola Artikel
+        </a>
+      </div>
     </div>
 
-</body>
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card {% if not doctor.is_verified %}disabled{% endif %}">
+        <div class="feature-top">
+          <div>
+            <h5 class="feature-title">Konsultasi</h5>
+            <div class="feature-sub">Sesi konsultasi pasien</div>
+          </div>
+          <div class="feature-icon"><i class="bi bi-chat-dots"></i></div>
+        </div>
 
-</html>
+        <div class="feature-value">{{ total_consultations }}</div>
+        <div class="text-muted mb-3">Total konsultasi</div>
+
+        <a href="{{ url_for('doctor_consult.list_consultations') }}"
+           class="btn btn-success btn-sm {% if not doctor.is_verified %}disabled{% endif %}">
+          <i class="bi bi-eye me-1"></i>Lihat Konsultasi
+        </a>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+      <div class="feature-card">
+        <div class="feature-top">
+          <div>
+            <h5 class="feature-title">Saldo Dokter</h5>
+            <div class="feature-sub">Ringkasan pendapatan</div>
+          </div>
+          <div class="feature-icon"><i class="bi bi-wallet2"></i></div>
+        </div>
+
+        <div class="feature-value">Rp {{ "{:,.0f}".format(doctor.balance or 0).replace(",", ".") }}</div>
+        <div class="text-muted mb-3">Saldo saat ini</div>
+
+        {% if doctor.is_verified %}
+          <a href="#" class="btn btn-outline-success btn-sm disabled">
+            <i class="bi bi-cash-coin me-1"></i>Withdraw
+          </a>
+        {% else %}
+          <div class="text-muted">Withdraw aktif setelah akun diverifikasi.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

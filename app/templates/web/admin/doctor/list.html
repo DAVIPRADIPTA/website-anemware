@@ -1,0 +1,178 @@
+{# templates/web/admin/doctor/list.html #}
+{% extends "web/admin/_layout.html" %}
+
+{% block title %}Verifikasi Dokter{% endblock %}
+
+{% block head_extra %}
+<style>
+  .wrap-card {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--surface);
+  }
+
+  .table thead th {
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    font-weight: 800;
+    color: #111827;
+    white-space: nowrap;
+  }
+
+  .td-muted {
+    color: var(--muted);
+    font-size: .9rem;
+  }
+
+  .doctor-name {
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .doctor-email {
+    color: var(--muted);
+    font-size: .9rem;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  form.inline {
+    display: inline-block;
+    margin: 0;
+  }
+
+  .badge-soft {
+    border: 1px solid var(--border);
+    background: #f3f4f6;
+    color: #111827;
+    font-weight: 700;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h2>Verifikasi Dokter</h2>
+      <p>Kelola data dokter, verifikasi akun, dan cek dokumen STR/SIP.</p>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-3">
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ category }} mb-2">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="card wrap-card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge text-bg-dark" style="border-radius:999px;">
+            <i class="bi bi-person-badge me-1"></i> Dokter
+          </span>
+          <span class="badge badge-soft" style="border-radius:999px;">
+            Total: {{ doctors|length }}
+          </span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Dokter</th>
+              <th>Spesialisasi</th>
+              <th>Status</th>
+              <th>Dokumen STR/SIP</th>
+              <th style="width: 260px;">Aksi</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for d in doctors %}
+              <tr>
+                <td>
+                  <p class="doctor-name">{{ d.full_name }}</p>
+                  <div class="doctor-email">
+                    <i class="bi bi-envelope me-1"></i>{{ d.email }}
+                  </div>
+                </td>
+
+                <td>
+                  {% if d.specialization %}
+                    <span class="badge text-bg-secondary">
+                      <i class="bi bi-briefcase-medical me-1"></i>{{ d.specialization }}
+                    </span>
+                  {% else %}
+                    <span class="td-muted">-</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if d.is_verified %}
+                    <span class="badge bg-success">
+                      <i class="bi bi-patch-check me-1"></i>Terverifikasi
+                    </span>
+                  {% else %}
+                    <span class="badge bg-danger">
+                      <i class="bi bi-x-circle me-1"></i>Belum
+                    </span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if d.verification_doc %}
+                    <a href="/{{ d.verification_doc }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                      <i class="bi bi-file-earmark-text me-1"></i>Lihat STR/SIP
+                    </a>
+                  {% else %}
+                    <span class="td-muted">Belum upload</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <div class="actions">
+                    <a href="{{ url_for('admin.edit_doctor', doctor_id=d.id) }}" class="btn btn-warning btn-sm">
+                      <i class="bi bi-pencil-square me-1"></i>Edit
+                    </a>
+
+                    {% if not d.is_verified %}
+                      <form class="inline"
+                            action="{{ url_for('admin.verify_doctor', doctor_id=d.id) }}"
+                            method="POST"
+                            onsubmit="return confirm('Verifikasi dokter ini?');">
+                        <button class="btn btn-primary btn-sm">
+                          <i class="bi bi-check2-circle me-1"></i>Verifikasi
+                        </button>
+                      </form>
+                    {% else %}
+                      <span class="td-muted">-</span>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+
+            {% if doctors|length == 0 %}
+              <tr>
+                <td colspan="5" class="text-center td-muted py-4">Belum ada data dokter.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

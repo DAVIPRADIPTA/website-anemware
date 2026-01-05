@@ -1,0 +1,169 @@
+{# templates/web/admin/payments/list.html #}
+{% extends "web/admin/_layout.html" %}
+{% block title %}Payments{% endblock %}
+
+{% block head_extra %}
+<style>
+  .wrap-card {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--surface);
+  }
+  .table thead th {
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    font-weight: 800;
+    color: #111827;
+    white-space: nowrap;
+  }
+  .muted { color: var(--muted); font-size: .9rem; }
+  .pill {
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f3f4f6;
+    font-weight: 700;
+    font-size: .85rem;
+    padding: 6px 10px;
+  }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h2>Payments</h2>
+      <p>Monitoring transaksi Midtrans dan status pembayaran.</p>
+    </div>
+  </div>
+
+  <div class="card wrap-card mb-3">
+    <div class="card-body">
+      <form method="GET" class="row g-2 align-items-end">
+        <div class="col-12 col-lg-4">
+          <label class="form-label fw-bold">Search</label>
+          <input class="form-control" name="q" value="{{ q or '' }}" placeholder="transaction_id / consultation_id / nama pasien/dokter">
+        </div>
+
+        <div class="col-6 col-lg-2">
+          <label class="form-label fw-bold">Status</label>
+          <select class="form-select" name="status">
+            <option value="">Semua</option>
+            <option value="pending" {% if status=='pending' %}selected{% endif %}>pending</option>
+            <option value="success" {% if status=='success' %}selected{% endif %}>success</option>
+            <option value="failed" {% if status=='failed' %}selected{% endif %}>failed</option>
+          </select>
+        </div>
+
+        <div class="col-6 col-lg-2">
+          <label class="form-label fw-bold">Method</label>
+          <input class="form-control" name="method" value="{{ method or '' }}" placeholder="gopay / bca / qris">
+        </div>
+
+        <div class="col-6 col-lg-2">
+          <label class="form-label fw-bold">From</label>
+          <input type="date" class="form-control" name="from" value="{{ date_from or '' }}">
+        </div>
+
+        <div class="col-6 col-lg-2">
+          <label class="form-label fw-bold">To</label>
+          <input type="date" class="form-control" name="to" value="{{ date_to or '' }}">
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary">
+            <i class="bi bi-search me-1"></i>Filter
+          </button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('admin_payment.list_payments') }}">
+            <i class="bi bi-x-circle me-1"></i>Reset
+          </a>
+          <span class="pill ms-auto">Total: {{ payments|length }}</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card wrap-card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Consultation</th>
+              <th>Pasien</th>
+              <th>Dokter</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Transaction ID</th>
+              <th style="width: 120px;">Aksi</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for p in payments %}
+              <tr>
+                <td class="muted">{{ p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "-" }}</td>
+                <td>#{{ p.consultation_id }}</td>
+
+                <td>
+                  {% set c = p.consultation if p.consultation is defined else None %}
+                  {# kalau relationship belum ada, tetap aman tampil '-' #}
+                  {% if p.consultation_id %}
+                    {% if p.consultation is defined and p.consultation and p.consultation.patient %}
+                      <div class="fw-bold">{{ p.consultation.patient.full_name }}</div>
+                      <div class="muted">{{ p.consultation.patient.email }}</div>
+                    {% else %}
+                      <span class="muted">-</span>
+                    {% endif %}
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if p.consultation is defined and p.consultation and p.consultation.doctor %}
+                    <div class="fw-bold">{{ p.consultation.doctor.full_name }}</div>
+                    <div class="muted">{{ p.consultation.doctor.email }}</div>
+                  {% else %}
+                    <span class="muted">-</span>
+                  {% endif %}
+                </td>
+
+                <td class="fw-bold">Rp {{ "{:,.0f}".format(p.amount or 0).replace(",", ".") }}</td>
+                <td>{{ p.payment_method or "-" }}</td>
+
+                <td>
+                  {% if p.status == "success" %}
+                    <span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i>success</span>
+                  {% elif p.status == "failed" %}
+                    <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>failed</span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>pending</span>
+                  {% endif %}
+                </td>
+
+                <td class="muted">{{ p.transaction_id or "-" }}</td>
+
+                <td>
+                  <div class="actions">
+                    <a href="{{ url_for('admin_payment.payment_detail', payment_id=p.id) }}"
+                       class="btn btn-outline-secondary btn-sm">
+                      <i class="bi bi-eye me-1"></i>Detail
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+
+            {% if payments|length == 0 %}
+              <tr>
+                <td colspan="9" class="text-center muted py-4">Tidak ada data pembayaran.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

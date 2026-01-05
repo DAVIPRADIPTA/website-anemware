@@ -1,0 +1,113 @@
+{# templates/web/admin/payments/detail.html #}
+{% extends "web/admin/_layout.html" %}
+{% block title %}Payment Detail{% endblock %}
+
+{% block head_extra %}
+<style>
+  .box {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--surface);
+  }
+  .kv { display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px dashed var(--border); }
+  .kv:last-child { border-bottom:none; }
+  .k { color: var(--muted); font-weight:700; }
+  .v { font-weight:800; text-align:right; }
+  form.inline { display:inline-block; margin:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h2>Payment Detail</h2>
+      <p>Detail transaksi dan data konsultasi terkait.</p>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-3">
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ category }} mb-2">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <a href="{{ url_for('admin_payment.list_payments') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Kembali
+    </a>
+
+    <form class="inline" action="{{ url_for('admin_payment.refresh_payment', payment_id=payment.id) }}" method="POST">
+      <button class="btn btn-primary">
+        <i class="bi bi-arrow-repeat me-1"></i>Refresh Status (Midtrans)
+      </button>
+    </form>
+
+    {% if payment.status == "success" %}
+      <span class="badge bg-success ms-auto align-self-center" style="border-radius:999px;">
+        <i class="bi bi-check2-circle me-1"></i>success
+      </span>
+    {% elif payment.status == "failed" %}
+      <span class="badge bg-danger ms-auto align-self-center" style="border-radius:999px;">
+        <i class="bi bi-x-circle me-1"></i>failed
+      </span>
+    {% else %}
+      <span class="badge bg-warning text-dark ms-auto align-self-center" style="border-radius:999px;">
+        <i class="bi bi-hourglass-split me-1"></i>pending
+      </span>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card box">
+        <div class="card-body">
+          <h5 class="fw-black mb-3"><i class="bi bi-credit-card me-2"></i>Info Pembayaran</h5>
+
+          <div class="kv"><div class="k">Payment ID</div><div class="v">#{{ payment.id }}</div></div>
+          <div class="kv"><div class="k">Consultation ID</div><div class="v">#{{ payment.consultation_id }}</div></div>
+          <div class="kv"><div class="k">Amount</div><div class="v">Rp {{ "{:,.0f}".format(payment.amount or 0).replace(",", ".") }}</div></div>
+          <div class="kv"><div class="k">Method</div><div class="v">{{ payment.payment_method or "-" }}</div></div>
+          <div class="kv"><div class="k">Status</div><div class="v">{{ payment.status }}</div></div>
+          <div class="kv"><div class="k">Transaction ID (Order ID)</div><div class="v">{{ payment.transaction_id or "-" }}</div></div>
+          <div class="kv"><div class="k">Created</div><div class="v">{{ payment.created_at.strftime("%Y-%m-%d %H:%M") if payment.created_at else "-" }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card box">
+        <div class="card-body">
+          <h5 class="fw-black mb-3"><i class="bi bi-chat-dots me-2"></i>Info Konsultasi</h5>
+
+          <div class="kv"><div class="k">Consultation Status</div><div class="v">{{ consultation.status if consultation else "-" }}</div></div>
+          <div class="kv"><div class="k">Expired At</div><div class="v">{{ consultation.expired_at.strftime("%Y-%m-%d %H:%M") if consultation and consultation.expired_at else "-" }}</div></div>
+          <div class="kv"><div class="k">Created</div><div class="v">{{ consultation.created_at.strftime("%Y-%m-%d %H:%M") if consultation and consultation.created_at else "-" }}</div></div>
+
+          <hr class="my-3">
+
+          <div class="kv"><div class="k">Pasien</div>
+            <div class="v">
+              {% if patient %}
+                {{ patient.full_name }}<br><span class="text-muted fw-normal">{{ patient.email }}</span>
+              {% else %}-{% endif %}
+            </div>
+          </div>
+
+          <div class="kv"><div class="k">Dokter</div>
+            <div class="v">
+              {% if doctor %}
+                {{ doctor.full_name }}<br><span class="text-muted fw-normal">{{ doctor.email }}</span>
+              {% else %}-{% endif %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

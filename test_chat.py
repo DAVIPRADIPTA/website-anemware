@@ -7,7 +7,7 @@ sio = socketio.Client()
 def connect():
     print("✅ Terhubung ke Server Socket!")
     # Masuk ke Room Konsultasi ID 1 (Ganti angka 1 sesuai ID konsultasi Anda)
-    sio.emit('join', {'room': 'consultation_2'})
+    sio.emit('join', {'room': 'consultation_20'})
 
 @sio.event
 def new_message(data):

@@ -25,16 +25,16 @@ def create_app(config_class=Config):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # ==== LOAD CHATBOT ENGINE (Unsloth + LoRA) ====
-    from app.services.llm_unsloth import UnslothEngine
+    # # ==== LOAD CHATBOT ENGINE (Unsloth + LoRA) ====
+    # from app.services.llm_unsloth import UnslothEngine
 
-    engine = UnslothEngine(
-        base_model_name=app.config["BASE_MODEL_NAME"],
-        lora_path=app.config["LORA_PATH"],
-        max_seq_length=2048,
-    )
-    engine.load()
-    app.extensions["llm_engine"] = engine
+    # engine = UnslothEngine(
+    #     base_model_name=app.config["BASE_MODEL_NAME"],
+    #     lora_path=app.config["LORA_PATH"],
+    #     max_seq_length=2048,
+    # )
+    # engine.load()
+    # app.extensions["llm_engine"] = engine
 
     # Register blueprints
     from app.routes.auth_routes import auth_bp
@@ -48,7 +48,14 @@ def create_app(config_class=Config):
     from app.web.admin_routes import admin_bp
     from app.web.doctor_routes import doctor_bp
     from app.web.doctor_articles import doctor_article_bp
-    from app.web.doctor_consultation import doctor_consult_bp
+    from app.web.doctor_consultations import doctor_consult_bp
+    from app.web.admin_articles import admin_article_bp
+    from app.web.admin_payment import admin_payment_bp
+    from app.web.admin_consultations import admin_consult_bp
+    
+
+
+
 
     from app.web.firebase_session_routes import web_session_bp
 
@@ -63,6 +70,13 @@ def create_app(config_class=Config):
     app.register_blueprint(doctor_bp)
     app.register_blueprint(doctor_article_bp)
     app.register_blueprint(doctor_consult_bp)
+    app.register_blueprint(admin_article_bp)
+    app.register_blueprint(admin_payment_bp)
+    app.register_blueprint(admin_consult_bp)
+    
+
+
+
 
     # Firebase session endpoints for web
     app.register_blueprint(web_session_bp)

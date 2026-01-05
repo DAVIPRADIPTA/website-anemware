@@ -50,3 +50,5 @@ class Payment(db.Model):
     transaction_id = db.Column(db.String(100), nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # di Payment model
+    consultation = db.relationship("Consultation", backref="payments")

@@ -1,50 +1,65 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Edit Artikel</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+{% extends "web/doctor/_layout.html" %}
+{% block title %}Edit Artikel{% endblock %}
 
-<div class="container mt-4">
-
+{% block content %}
+<div class="page-header">
+  <div>
     <h2>Edit Artikel</h2>
-
-    <form method="POST" enctype="multipart/form-data">
-
-        <div class="mb-3">
-            <label class="form-label">Judul</label>
-            <input type="text" class="form-control" name="title" value="{{ article.title }}" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Konten</label>
-            <textarea class="form-control" rows="6" name="content" required>{{ article.content }}</textarea>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Tags</label>
-            <input type="text" class="form-control" name="tags" value="{{ article.tags }}">
-        </div>
-
-        {% if article.image_url %}
-        <div class="mb-3">
-            <p>Gambar saat ini:</p>
-            <img src="/{{ article.image_url }}" width="200">
-        </div>
-        {% endif %}
-
-        <div class="mb-3">
-            <label class="form-label">Ganti Gambar (opsional)</label>
-            <input type="file" class="form-control" name="image">
-        </div>
-
-        <button class="btn btn-success">Update</button>
-        <a href="{{ url_for('doctor_article.list_articles') }}" class="btn btn-secondary">Kembali</a>
-
-    </form>
-
+    <p>Perbarui artikel agar tetap akurat dan jelas.</p>
+  </div>
+  <a href="{{ url_for('doctor_article.list_articles') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Kembali
+  </a>
 </div>
 
-</body>
-</html>
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  <div class="mb-3">
+    {% for category, msg in messages %}
+      <div class="alert alert-{{ category }} mb-2">{{ msg }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endwith %}
+
+<div class="card p-4">
+  <form method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Judul</label>
+      <input type="text" name="title" class="form-control" value="{{ article.title }}" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Konten</label>
+      <textarea name="content" class="form-control" rows="10" required>{{ article.content }}</textarea>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Tags</label>
+      <input type="text" name="tags" class="form-control" value="{{ article.tags or '' }}" placeholder="Anemia,Tips,Gizi">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Gambar (opsional)</label>
+      {% if article.image_url %}
+        <div class="mb-2">
+          <a href="/{{ article.image_url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-image me-1"></i>Lihat gambar saat ini
+          </a>
+        </div>
+      {% endif %}
+      <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png">
+      <div class="form-text">Upload gambar baru untuk mengganti gambar lama.</div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-success">
+        <i class="bi bi-check2-circle me-1"></i>Update
+      </button>
+      <a href="{{ url_for('doctor_article.list_articles') }}" class="btn btn-outline-secondary">
+        Batal
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

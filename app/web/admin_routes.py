@@ -60,7 +60,7 @@ def doctors():
     doctors = User.query.filter_by(role="DOKTER").all()
 
     return render_template(
-        "web/admin/doctors.html",
+        "web/admin/doctor/list.html",
         doctors=doctors
     )
 
@@ -106,6 +106,6 @@ def edit_doctor(doctor_id):
         return redirect(url_for("admin.doctors"))
 
     return render_template(
-        "web/admin/edit_doctor.html",
+        "web/admin/doctor/edit.html",
         doctor=doctor
     )

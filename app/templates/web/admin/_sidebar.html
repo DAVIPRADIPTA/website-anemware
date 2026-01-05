@@ -1,0 +1,60 @@
+{# templates/web/admin/_sidebar.html #}
+{% set ep = request.endpoint or '' %}
+
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <div class="brand">
+      <div class="brand-badge">A</div>
+      <div class="brand-text">
+        <h5>Admin Panel</h5>
+        <small>Dashboard & Management</small>
+      </div>
+    </div>
+
+    <button class="toggle-btn" id="sidebarToggle" type="button" aria-label="Toggle sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+  </div>
+
+  <div class="nav-section-title">Menu</div>
+
+  <a href="{{ url_for('admin.dashboard') }}" class="side-link {% if ep == 'admin.dashboard' %}active{% endif %}">
+    <i class="bi bi-speedometer2"></i>
+    <span>Dashboard</span>
+  </a>
+
+  <a href="{{ url_for('admin.doctors') }}"
+    class="side-link {% if ep == 'admin.doctors' or ep.startswith('admin.doctors') %}active{% endif %}">
+    <i class="bi bi-person-badge"></i>
+    <span>Kelola Dokter</span>
+  </a>
+
+  <a href="{{ url_for('admin_article.list_articles') }}"
+    class="side-link {% if ep.startswith('admin_article.') %}active{% endif %}">
+    <i class="bi bi-newspaper"></i>
+    <span>Kelola Artikel</span>
+  </a>
+  <a href="{{ url_for('admin_payment.list_payments') }}"
+    class="side-link {% if (request.endpoint or '').startswith('admin_payment.') %}active{% endif %}">
+    <i class="bi bi-credit-card"></i>
+    <span>Payments</span>
+  </a>
+  <a href="{{ url_for('admin_consult.list_consultations') }}"
+    class="side-link {% if (request.endpoint or '').startswith('admin_consult.') %}active{% endif %}">
+    <i class="bi bi-chat-dots"></i>
+    <span>Consultations</span>
+  </a>
+
+
+
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="hello">Halo,</div>
+      <div class="name">{{ current_user.full_name }}</div>
+    </div>
+
+    <a href="{{ url_for('web_auth.logout') }}" class="btn btn-light btn-sm">
+      <i class="bi bi-box-arrow-right me-1"></i> Logout
+    </a>
+  </div>
+</aside>

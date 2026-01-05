@@ -1,265 +1,291 @@
-<!DOCTYPE html>
-<html>
+{% extends "web/doctor/_layout.html" %}
+{% block title %}Chat Konsultasi{% endblock %}
 
-<head>
-    <title>Chat Konsultasi</title>
+{% block head_extra %}
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .chat-shell {
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    .chat-head {
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: linear-gradient(180deg, rgba(22, 163, 74, .12), rgba(22, 163, 74, .04));
+        border-bottom: 1px solid var(--border);
+    }
 
-    <style>
-        body {
-            background: #e5ddd5;
-            font-family: "Segoe UI", sans-serif;
-        }
+    .chat-title {
+        margin: 0;
+        font-weight: 950;
+        letter-spacing: -.02em;
+        font-size: 1.05rem;
+    }
 
-        /* WhatsApp background */
-        #chat-box {
-            height: 75vh;
-            overflow-y: auto;
-            padding: 20px;
-            background: url("https://i.imgur.com/5u1YIPh.png");
-            background-size: cover;
-            border-radius: 10px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        }
+    .chat-sub {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: .9rem;
+    }
 
-        /* Bubble Basic Style */
-        .bubble {
-            max-width: 65%;
-            padding: 10px 14px;
-            border-radius: 8px;
-            margin: 8px 0;
-            font-size: 15px;
-            line-height: 1.4;
-            position: relative;
-            animation: fadeIn 0.2s ease-in;
-        }
+    #chat-box {
+        height: 68vh;
+        overflow-y: auto;
+        padding: 16px;
+        background: #f9fafb;
 
-        /* Bubble Sent (Doctor) */
-        .me {
-            background: #d4f8c4;
-            /* WA green bubble */
-            margin-left: auto;
-            border-top-right-radius: 0px;
-        }
+        /* ✅ penting untuk alignment */
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
 
-        /* Bubble Received (Patient) */
-        .other {
-            background: #ffffff;
-            margin-right: auto;
-            border-top-left-radius: 0px;
-        }
+    .bubble {
+        max-width: 72%;
+        padding: 10px 12px;
+        border-radius: 14px;
+        font-size: 14.5px;
+        line-height: 1.4;
+        border: 1px solid var(--border);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, .04);
 
-        /* Timestamp */
-        .timestamp {
-            font-size: 11px;
-            opacity: 0.6;
-            margin-top: 5px;
-            text-align: right;
-        }
+        /* ✅ biar tidak full width */
+        width: fit-content;
+        display: inline-block;
+        white-space: pre-wrap;
+    }
 
-        /* Input Bar */
-        #chat-input-bar {
-            margin-top: 10px;
-            background: #f0f0f0;
-            padding: 10px;
-            border-radius: 8px;
-            display: flex;
-            gap: 10px;
-            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-        }
+    .me {
+        align-self: flex-end;
+        /* ✅ kanan */
+        background: rgba(22, 163, 74, .12);
+        border-color: rgba(22, 163, 74, .22);
+    }
 
-        #chat-input {
-            flex: 1;
-            border-radius: 20px;
-            padding-left: 15px;
-            border: 1px solid #ccc;
-        }
+    .other {
+        align-self: flex-start;
+        /* ✅ kiri */
+        background: #fff;
+    }
 
-        #send-btn {
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            background: #128c7e;
-            border: none;
-            color: white;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    .timestamp {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 6px;
+        text-align: right;
+    }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
+    .chat-input-wrap {
+        padding: 12px;
+        border-top: 1px solid var(--border);
+        background: #fff;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        position: sticky;
+        bottom: 0;
+        z-index: 50;
+    }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    #chat-input {
+        flex: 1;
+        border-radius: 999px;
+        padding-left: 14px;
+    }
 
-        /* Tail chat untuk bubble dokter (kanan) */
-        .me::after {
-            content: "";
-            position: absolute;
-            right: -8px;
-            top: 0;
-            width: 0;
-            height: 0;
-            border-top: 10px solid #d4f8c4;
-            border-left: 10px solid transparent;
-        }
+    #send-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        pointer-events: auto;
+        position: relative;
+        z-index: 60;
+    }
 
-        /* Tail chat untuk bubble pasien (kiri) */
-        .other::after {
-            content: "";
-            position: absolute;
-            left: -8px;
-            top: 0;
-            width: 0;
-            height: 0;
-            border-top: 10px solid #ffffff;
-            border-right: 10px solid transparent;
-        }
+    #send-btn:hover {
+        background: var(--accent2);
+    }
+</style>
+{% endblock %}
 
-        @keyframes tail-pop {
-            from {
-                opacity: 0;
-                transform: scale(0.8);
-            }
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Chat Konsultasi</h2>
+        <p>Chat dengan pasien secara real-time.</p>
+    </div>
+    <a href="{{ url_for('doctor_consult.list_consultations') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Kembali
+    </a>
+</div>
 
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .bubble::after {
-            animation: tail-pop 0.2s ease-out;
-        }
-    </style>
-
-
-</head>
-
-<body>
-
-    {% include "web/doctor/_navbar.html" %}
-
-    <div class="container mt-4">
-
-        <div style="background:#128C7E; padding:12px; color:white; font-size:18px;">
-            Chat dengan {{ consultation.patient.full_name }}
+<div class="chat-shell">
+    <div class="chat-head">
+        <div>
+            <p class="chat-title mb-0">Chat dengan {{ consultation.patient.full_name }}</p>
+            <p class="chat-sub mb-0">Consultation ID: #{{ consultation.id }}</p>
         </div>
-
-
-        <div id="chat-box" class="mb-3">
-            {% for m in messages %}
-            {% if m.sender_id == current_user.id %}
-            <div class="bubble me">
-                {{ m.message }}
-                <div class="timestamp">
-                    {{ m.created_at.strftime("%H:%M") }}
-                </div>
-            </div>
-            {% else %}
-            <div class="bubble other">
-                {{ m.message }}
-                <div class="timestamp">
-                    {{ m.created_at.strftime("%H:%M") }}
-                </div>
-            </div>
-            {% endif %}
-            {% endfor %}
-        </div>
-
-
-        <!-- INPUT PESAN -->
-        <div id="chat-input-bar">
-            <input type="text" id="chat-input" class="form-control" placeholder="Ketik pesan..." required>
-            <button id="send-btn">➤</button>
-        </div>
-
-
-
+        <span class="badge bg-success" style="border-radius:999px;">
+            <i class="bi bi-circle-fill me-1" style="font-size:.6rem;"></i>Online
+        </span>
     </div>
 
-    <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const socket = io();
+    <div id="chat-box">
+        {% for m in messages %}
+        {% if m.sender_id == current_user.id %}
+        <div class="bubble me">
+            {{ m.message }}
+            <div class="timestamp">{{ m.created_at.strftime("%H:%M") if m.created_at else "" }}</div>
+        </div>
+        {% else %}
+        <div class="bubble other">
+            {{ m.message }}
+            <div class="timestamp">{{ m.created_at.strftime("%H:%M") if m.created_at else "" }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
 
-        const consultationId = "{{ consultation.id }}";
-        const room = "consultation_" + consultationId;
+    <div class="chat-input-wrap">
+        <input type="text" id="chat-input" class="form-control" placeholder="Ketik pesan..." required>
+        <button id="send-btn" type="button" aria-label="Kirim">
+            <i class="bi bi-send-fill"></i>
+        </button>
+    </div>
+</div>
+{% endblock %}
 
-        socket.emit("join", { room: room });
+{% block scripts %}
+<script>
+(function(){
+  // indikator script hidup
+  const tag = document.createElement("div");
+  tag.textContent = "JS ACTIVE";
+  tag.style.cssText = "position:fixed;top:10px;right:10px;z-index:999999;background:#111;color:#fff;padding:8px 10px;border-radius:10px;font-weight:800;font-size:12px;";
+  document.addEventListener("DOMContentLoaded", () => document.body.appendChild(tag));
 
-        const CURRENT_USER_ID = {{ current_user.id }};
-        const PATIENT_NAME = {{ consultation.patient.full_name|tojson }};
+  const CURRENT_USER_ID = {{ current_user.id }};
+  const consultationId = "{{ consultation.id }}";
 
-        const chatBox = document.getElementById("chat-box");
+  function fmtTime(iso){
+    try{
+      const d = iso ? new Date(iso) : new Date();
+      return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }catch(e){
+      return "";
+    }
+  }
 
-        // Auto-scroll ke bawah saat halaman pertama kali dibuka
-        chatBox.scrollTo({
-            top: chatBox.scrollHeight,
-            behavior: "smooth"
-        });
+  function appendBubble(senderId, message, timestamp){
+    const chatBox = document.getElementById("chat-box");
+    if (!chatBox) return;
 
-        // Listener pesan baru
-        socket.on("new_message", function (msg) {
-            const bubble = document.createElement("div");
-            bubble.className = "bubble " + (msg.sender_id == CURRENT_USER_ID ? "me" : "other");
+    const bubble = document.createElement("div");
+    const isMe = String(senderId) === String(CURRENT_USER_ID);
+    bubble.className = "bubble " + (isMe ? "me" : "other");
+    bubble.innerHTML = `
+      ${message}
+      <div class="timestamp">${fmtTime(timestamp)}</div>
+    `;
 
-            bubble.innerHTML = `
-                ${msg.message}
-                <div class="timestamp">
-                    ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-            `;
+    chatBox.appendChild(bubble);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
 
-            chatBox.appendChild(bubble);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
+  // ✅ SOCKET LISTENER (buat pesan masuk realtime)
+  // Pastikan socket.io script sudah ada di head
+  const socket = io();
+  const room = "consultation_" + consultationId;
 
-        // Klik tombol kirim
-        document.getElementById("send-btn").addEventListener("click", function (e) {
-            e.preventDefault();
-
-            let message = document.getElementById("chat-input").value.trim();
-            if (!message) return;
-
-            fetch(`/doctor/consultations/${consultationId}/send`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: message })
-            }).then(res => {
-                if (!res.ok) console.log("Gagal kirim pesan");
-            });
-
-            document.getElementById("chat-input").value = "";
-        });
-
-        // Tekan Enter untuk kirim
-        document.getElementById("chat-input").addEventListener("keydown", function (e) {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                document.getElementById("send-btn").click();
-            }
-        });
-
-        // Test: pastikan button hidup
-        // (boleh dihapus nanti)
-        document.getElementById("send-btn").addEventListener("click", function () {
-            console.log("Button clicked");
-        });
+  document.addEventListener("DOMContentLoaded", () => {
+    socket.on("connect", () => {
+      console.log("socket connected:", socket.id);
+      socket.emit("join", { room: room });
     });
+
+    socket.on("new_message", (msg) => {
+      // msg = {sender_id, message, timestamp}
+      // biar ga double untuk pesan kita (karena kita juga append sendiri), skip jika sender kita
+      if (String(msg.sender_id) === String(CURRENT_USER_ID)) return;
+
+      appendBubble(msg.sender_id, msg.message, msg.timestamp);
+    });
+
+    const chatBox = document.getElementById("chat-box");
+    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
+  // event delegation: tombol dirender kapan pun tetap ketangkep
+  document.addEventListener("click", async function(e){
+    const btn = e.target.closest("#send-btn");
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const input = document.getElementById("chat-input");
+    const chatBox = document.getElementById("chat-box");
+    if (!input || !chatBox) {
+      alert("DOM input/chat-box tidak ditemukan");
+      return;
+    }
+
+    const message = (input.value || "").trim();
+    if (!message) return;
+
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(`/doctor/consultations/${consultationId}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+
+      const json = await res.json().catch(()=>null);
+      btn.disabled = false;
+
+      if (!res.ok || !json || json.status !== "success") {
+        alert("SEND FAILED: " + (json?.message || res.status));
+        return;
+      }
+
+      // ✅ INI KUNCINYA: langsung render bubble pesan kita
+      appendBubble(CURRENT_USER_ID, message, json.timestamp);
+
+      input.value = "";
+      input.focus();
+    } catch(err) {
+      btn.disabled = false;
+      alert("FETCH ERROR: " + err);
+    }
+  }, true);
+
+  // Enter untuk kirim
+  document.addEventListener("keydown", function(e){
+    const input = document.getElementById("chat-input");
+    if (!input) return;
+    if (e.target === input && e.key === "Enter") {
+      e.preventDefault();
+      const btn = document.getElementById("send-btn");
+      if (btn) btn.click();
+    }
+  }, true);
+
+})();
 </script>
-
-
-</body>
-
-</html>
+{% endblock %}

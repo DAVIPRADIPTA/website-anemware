@@ -1,0 +1,183 @@
+{# templates/web/admin/articles/edit.html #}
+{% extends "web/admin/_layout.html" %}
+
+{% block title %}Edit Artikel{% endblock %}
+
+{% block head_extra %}
+<style>
+  .form-card {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    background: var(--surface);
+  }
+
+  .form-card .card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 18px;
+  }
+
+  .form-card .card-body {
+    padding: 18px;
+  }
+
+  .form-label {
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .hint {
+    color: var(--muted);
+    font-size: .9rem;
+    margin-top: 4px;
+  }
+
+  .preview-box {
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .preview-box .meta {
+    min-width: 0;
+  }
+
+  .preview-box .meta .title {
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .preview-box .meta .sub {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: .9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 520px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h2>Edit Artikel</h2>
+      <p>Perbarui judul, konten, tag, dan gambar artikel.</p>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-3">
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ category }} mb-2">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="card form-card">
+    <div class="card-header d-flex align-items-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-dark" style="border-radius: 999px;">
+          <i class="bi bi-pencil-square me-1"></i> Edit
+        </span>
+        <div class="fw-bold text-truncate" style="max-width: 720px;">
+          {{ article.title }}
+        </div>
+      </div>
+
+      <a href="{{ url_for('admin_article.list_articles') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Kembali
+      </a>
+    </div>
+
+    <div class="card-body">
+      <form method="POST" enctype="multipart/form-data">
+        <div class="row g-3">
+
+          <div class="col-12">
+            <label class="form-label">Judul</label>
+            <input type="text" name="title" class="form-control" value="{{ article.title }}" required>
+            <div class="hint">Gunakan judul yang jelas dan ringkas.</div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Konten</label>
+            <textarea name="content" class="form-control" rows="10" required>{{ article.content }}</textarea>
+            <div class="hint">Tulis isi artikel. Pastikan mudah dibaca.</div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Tags</label>
+            <input
+              type="text"
+              name="tags"
+              class="form-control"
+              value="{{ article.tags or '' }}"
+              placeholder="Anemia, Tips, Nutrisi"
+            >
+            <div class="hint">Pisahkan dengan koma. Contoh: <code>Anemia, Tips</code></div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Gambar (opsional)</label>
+
+            {% if article.image_url %}
+              <div class="preview-box mb-2">
+                <div class="meta">
+                  <p class="title mb-0">Gambar saat ini</p>
+                  <p class="sub mb-0">/{{ article.image_url }}</p>
+                </div>
+                <div class="d-flex gap-2">
+                  <a href="/{{ article.image_url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-image me-1"></i> Lihat
+                  </a>
+                </div>
+              </div>
+            {% else %}
+              <div class="preview-box mb-2">
+                <div class="meta">
+                  <p class="title mb-0">Belum ada gambar</p>
+                  <p class="sub mb-0">Upload gambar untuk menambahkan thumbnail artikel.</p>
+                </div>
+              </div>
+            {% endif %}
+
+            <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png">
+            <div class="hint">Upload gambar baru untuk mengganti gambar lama.</div>
+          </div>
+
+          <div class="col-12">
+            <hr class="my-2">
+            <div class="actions">
+              <button class="btn btn-primary">
+                <i class="bi bi-check2-circle me-1"></i> Update
+              </button>
+
+              <a href="{{ url_for('admin_article.list_articles') }}" class="btn btn-secondary">
+                <i class="bi bi-x-circle me-1"></i> Batal
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

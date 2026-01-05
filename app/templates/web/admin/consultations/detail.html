@@ -1,0 +1,176 @@
+{# templates/web/admin/consultations/detail.html #}
+{% extends "web/admin/_layout.html" %}
+{% block title %}Consultation Detail{% endblock %}
+
+{% block head_extra %}
+<style>
+  .box{border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);background:var(--surface);}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dashed var(--border);}
+  .kv:last-child{border-bottom:none;}
+  .k{color:var(--muted);font-weight:700;}
+  .v{font-weight:800;text-align:right;}
+  .msg-wrap{border-radius:16px;border:1px solid var(--border);background:#fff;box-shadow:var(--shadow);}
+  .msg{padding:10px 12px;border-bottom:1px solid var(--border);}
+  .msg:last-child{border-bottom:none;}
+  .msg-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px;}
+  .msg-name{font-weight:900;}
+  .msg-time{color:var(--muted);font-size:.85rem;}
+  .msg-body{white-space:pre-wrap;}
+</style>
+{% endblock %}
+
+{% block content %}
+  {% set is_expired = (consult.expired_at and consult.expired_at < now) %}
+
+  <div class="page-header">
+    <div>
+      <h2>Consultation #{{ consult.id }}</h2>
+      <p>Detail sesi konsultasi + pembayaran + transcript chat.</p>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <a href="{{ url_for('admin_consult.list_consultations') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Kembali
+    </a>
+
+    {% if consult.status == "active" %}
+      <span class="badge bg-primary align-self-center" style="border-radius:999px;">
+        <i class="bi bi-chat-dots me-1"></i>active
+      </span>
+    {% elif consult.status == "completed" %}
+      <span class="badge bg-success align-self-center" style="border-radius:999px;">
+        <i class="bi bi-check2-circle me-1"></i>completed
+      </span>
+    {% else %}
+      <span class="badge bg-secondary align-self-center" style="border-radius:999px;">
+        <i class="bi bi-hourglass-split me-1"></i>pending
+      </span>
+    {% endif %}
+
+    {% if is_expired %}
+      <span class="badge bg-danger align-self-center" style="border-radius:999px;">
+        <i class="bi bi-alarm me-1"></i>expired
+      </span>
+    {% else %}
+      <span class="badge bg-success align-self-center" style="border-radius:999px;">
+        <i class="bi bi-clock me-1"></i>aktif
+      </span>
+    {% endif %}
+
+    {% if latest_payment and latest_payment.transaction_id %}
+      <a class="btn btn-outline-primary ms-auto"
+         href="{{ url_for('admin_payment.payment_detail', payment_id=latest_payment.id) }}">
+        <i class="bi bi-credit-card me-1"></i>Payment Detail
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card box">
+        <div class="card-body">
+          <h5 class="fw-black mb-3"><i class="bi bi-chat-dots me-2"></i>Info Konsultasi</h5>
+
+          <div class="kv"><div class="k">Status</div><div class="v">{{ consult.status }}</div></div>
+          <div class="kv"><div class="k">Created</div><div class="v">{{ consult.created_at.strftime("%Y-%m-%d %H:%M") if consult.created_at else "-" }}</div></div>
+          <div class="kv"><div class="k">Expired At</div><div class="v">{{ consult.expired_at.strftime("%Y-%m-%d %H:%M") if consult.expired_at else "-" }}</div></div>
+          <div class="kv"><div class="k">Updated</div><div class="v">{{ consult.updated_at.strftime("%Y-%m-%d %H:%M") if consult.updated_at else "-" }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card box">
+        <div class="card-body">
+          <h5 class="fw-black mb-3"><i class="bi bi-people me-2"></i>Pasien & Dokter</h5>
+
+          <div class="kv">
+            <div class="k">Pasien</div>
+            <div class="v">
+              {{ patient.full_name if patient else "-" }}<br>
+              <span class="text-muted fw-normal">{{ patient.email if patient else "" }}</span>
+            </div>
+          </div>
+
+          <div class="kv">
+            <div class="k">Dokter</div>
+            <div class="v">
+              {{ doctor.full_name if doctor else "-" }}<br>
+              <span class="text-muted fw-normal">{{ doctor.email if doctor else "" }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card box">
+        <div class="card-body">
+          <h5 class="fw-black mb-3"><i class="bi bi-credit-card me-2"></i>Payment Terbaru</h5>
+
+          {% if latest_payment %}
+            <div class="row g-2">
+              <div class="col-md-3">
+                <div class="k">Status</div>
+                <div class="v">{{ latest_payment.status }}</div>
+              </div>
+              <div class="col-md-3">
+                <div class="k">Amount</div>
+                <div class="v">Rp {{ "{:,.0f}".format(latest_payment.amount or 0).replace(",", ".") }}</div>
+              </div>
+              <div class="col-md-3">
+                <div class="k">Method</div>
+                <div class="v">{{ latest_payment.payment_method or "-" }}</div>
+              </div>
+              <div class="col-md-3">
+                <div class="k">Transaction ID</div>
+                <div class="v">{{ latest_payment.transaction_id or "-" }}</div>
+              </div>
+              <div class="col-md-12 mt-2 text-muted">
+                Created: {{ latest_payment.created_at.strftime("%Y-%m-%d %H:%M") if latest_payment.created_at else "-" }}
+              </div>
+            </div>
+          {% else %}
+            <div class="text-muted">Belum ada payment untuk konsultasi ini.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="msg-wrap">
+        <div class="p-3 border-bottom">
+          <h5 class="mb-0 fw-black"><i class="bi bi-chat-square-text me-2"></i>Chat Transcript</h5>
+          <div class="text-muted">Total pesan: {{ messages|length }}</div>
+        </div>
+
+        {% if messages|length == 0 %}
+          <div class="p-4 text-muted">Belum ada chat.</div>
+        {% else %}
+          {% for m, sender in messages %}
+            <div class="msg">
+              <div class="msg-head">
+                <div class="msg-name">
+                  {% if sender and patient and sender.id == patient.id %}
+                    <span class="badge bg-secondary me-2">Pasien</span>
+                  {% elif sender and doctor and sender.id == doctor.id %}
+                    <span class="badge bg-primary me-2">Dokter</span>
+                  {% else %}
+                    <span class="badge bg-dark me-2">User</span>
+                  {% endif %}
+                  {{ sender.full_name if sender else "Unknown" }}
+                </div>
+                <div class="msg-time">
+                  {{ m.created_at.strftime("%Y-%m-%d %H:%M:%S") if m.created_at else "" }}
+                </div>
+              </div>
+              <div class="msg-body">{{ m.message }}</div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+{% endblock %}
