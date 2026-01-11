@@ -2,145 +2,169 @@ import os
 import numpy as np
 from PIL import Image
 import tensorflow as tf
-import cv2  # Kita pakai OpenCV untuk image processing
-from flask import current_app
+import cv2
+
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+
+
+# =========================
+# CUSTOM METRIC (WAJIB)
+# =========================
+def tolerance_accuracy(y_true, y_pred):
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.cast(y_pred, tf.float32)
+    diff = tf.abs(y_true - y_pred)
+    return tf.reduce_mean(tf.cast(diff < 1.0, tf.float32))
+
 
 class AnemiaPredictor:
     def __init__(self):
         self.eye_model = None
         self.nail_model = None
         self.is_loaded = False
-        # MediaPipe dihapus, tidak perlu inisialisasi lagi
+
+        # model file names
+        self.eye_filename = "model_konjungtiva.h5"
+        self.nail_filename = "model_kuku.h5"
+
+    def _get_model_dir(self) -> str:
+        service_dir = os.path.dirname(os.path.abspath(__file__))
+        app_dir = os.path.dirname(service_dir)
+        return os.path.join(app_dir, "model")
 
     def load_models(self):
-        """Load model hanya sekali saat aplikasi dijalankan"""
-        if not self.is_loaded:
-            service_dir = os.path.dirname(os.path.abspath(__file__)) 
-            app_dir = os.path.dirname(service_dir)
-            model_dir = os.path.join(app_dir, 'model')
-            
-            # 1. Load Model Mata
-            eye_filename = 'model_konjungtiva.h5' 
-            eye_path = os.path.join(model_dir, eye_filename)
-            print(f"🔍 Loading Model Mata: {eye_filename}...")
-            try:
-                self.eye_model = tf.keras.models.load_model(eye_path)
-                print(f"✅ Model Mata BERHASIL dimuat!")
-            except Exception as e:
-                print(f"❌ Gagal memuat Model Mata: {e}")
+        """Load model hanya sekali"""
+        if self.is_loaded:
+            return
 
-            # 2. Load Model Kuku
-            nail_filename = 'model_kuku.h5' 
-            nail_path = os.path.join(model_dir, nail_filename)
-            print(f"🔍 Loading Model Kuku: {nail_filename}...")
-            try:
-                self.nail_model = tf.keras.models.load_model(nail_path)
-                print(f"✅ Model Kuku BERHASIL dimuat!")
-            except Exception as e:
-                print(f"❌ Gagal memuat Model Kuku: {e}")
-            
-            self.is_loaded = True
+        model_dir = self._get_model_dir()
 
-    def smart_crop_eye(self, image_path):
-        """
-        PENGGANTI MEDIAPIPE:
-        Menggunakan Segmentasi Warna (LAB) untuk mencari area merah (konjungtiva).
-        Cocok untuk foto close-up.
-        """
-        # 1. Load Image pakai OpenCV
+        # 1) Load Model Mata
+        eye_path = os.path.join(model_dir, self.eye_filename)
+        print(f"🔍 Loading Model Mata: {eye_path}")
+        try:
+            self.eye_model = tf.keras.models.load_model(
+                eye_path,
+                custom_objects={"tolerance_accuracy": tolerance_accuracy},
+                compile=False,  # lebih aman lintas versi TF
+            )
+            print("✅ Model Mata dimuat!")
+        except Exception as e:
+            print(f"❌ Gagal memuat Model Mata: {e}")
+            self.eye_model = None
+
+        # 2) Load Model Kuku
+        nail_path = os.path.join(model_dir, self.nail_filename)
+        print(f"🔍 Loading Model Kuku: {nail_path}")
+        try:
+            self.nail_model = tf.keras.models.load_model(
+                nail_path,
+                custom_objects={"tolerance_accuracy": tolerance_accuracy},
+                compile=False,
+            )
+            print("✅ Model Kuku dimuat!")
+        except Exception as e:
+            print(f"❌ Gagal memuat Model Kuku: {e}")
+            self.nail_model = None
+
+        self.is_loaded = True
+
+    # =========================
+    # SMART CROP EYE (punyamu)
+    # =========================
+    def smart_crop_eye(self, image_path: str):
         img = cv2.imread(image_path)
-        if img is None: return None
-        
-        # 2. Pre-processing (Blur)
-        blurred = cv2.GaussianBlur(img, (5, 5), 0)
-        
-        # 3. Konversi ke LAB Color Space (Channel A = Green-Red)
-        lab = cv2.cvtColor(blurred, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
+        if img is None:
+            return None
 
-        # 4. Thresholding Otomatis (Otsu) pada channel A (Mencari warna merah dominan)
+        blurred = cv2.GaussianBlur(img, (5, 5), 0)
+        lab = cv2.cvtColor(blurred, cv2.COLOR_BGR2LAB)
+        _, a, _ = cv2.split(lab)
+
         _, mask = cv2.threshold(a, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-        # 5. Rapikan Mask (Morphology)
-        kernel = np.ones((3,3), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2) # Hapus noise
-        mask = cv2.dilate(mask, kernel, iterations=2) # Pertebal area merah
+        kernel = np.ones((3, 3), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+        mask = cv2.dilate(mask, kernel, iterations=2)
 
-        # 6. Cari area merah terbesar (Kontur)
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
+
         final_mask = np.zeros_like(mask)
-        
-        # Default crop (jika gagal) adalah ambil tengah
         h_img, w_img = img.shape[:2]
-        x, y, w, h = int(w_img*0.2), int(h_img*0.3), int(w_img*0.6), int(h_img*0.5) 
+        x, y, w, h = int(w_img * 0.2), int(h_img * 0.3), int(w_img * 0.6), int(h_img * 0.5)
 
         if contours:
-            # Ambil kontur terbesar
             largest_contour = max(contours, key=cv2.contourArea)
-            
-            # Filter jika terlalu kecil (noise)
             if cv2.contourArea(largest_contour) > 500:
                 cv2.drawContours(final_mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
                 x, y, w, h = cv2.boundingRect(largest_contour)
-                print("✨ Segmentasi Warna Berhasil! Konjungtiva ditemukan.")
+                print("✨ Konjungtiva ditemukan (segmentasi LAB).")
             else:
-                print("⚠️ Area merah terlalu kecil, menggunakan crop tengah default.")
+                print("⚠️ Area merah kecil, pakai crop default.")
 
-        # 7. Terapkan Masking (Background jadi hitam)
         masked_img = cv2.bitwise_and(img, img, mask=final_mask)
 
-        # 8. Crop kotak fokus (dengan sedikit padding)
         pad = 10
         y1 = max(0, y - pad)
         y2 = min(h_img, y + h + pad)
         x1 = max(0, x - pad)
         x2 = min(w_img, x + w + pad)
-        
-        final_cropped = masked_img[y1:y2, x1:x2]
-        
-        # Cek jika hasil crop kosong
-        if final_cropped.size == 0:
-            return Image.open(image_path).convert('RGB')
 
-        # Convert balik ke PIL Image (RGB) agar bisa masuk ke fungsi preprocess selanjutnya
-        return Image.fromarray(cv2.cvtColor(final_cropped, cv2.COLOR_BGR2RGB))
+        cropped = masked_img[y1:y2, x1:x2]
+        if cropped.size == 0:
+            return Image.open(image_path).convert("RGB")
 
-    def preprocess_image(self, pil_image, target_size=(224, 224)):
-        """Ubah gambar PIL jadi array AI"""
+        return Image.fromarray(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
+
+    # =========================
+    # PREPROCESS (DIUBAH!)
+    # =========================
+    def preprocess_image(self, pil_image: Image.Image, target_size=(224, 224)):
+        """
+        MobileNetV2 preprocess:
+        - Input float32
+        - preprocess_input => skala ke [-1..1]
+        """
         img = pil_image.resize(target_size)
-        img_array = np.array(img)
-        img_array = img_array / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
-        return img_array
+        arr = np.array(img).astype("float32")
+        arr = np.expand_dims(arr, axis=0)   # (1,224,224,3)
+        arr = preprocess_input(arr)         # IMPORTANT
+        return arr
 
-    def predict_single_model(self, model, img_path, model_name="Model", is_eye=False):
-        # 1. Smart Crop (Khusus Mata pakai LAB Color)
+    def _extract_hb(self, predictions):
+        """
+        Aman untuk:
+        - output array (1,1)
+        - output list multitask
+        """
+        if isinstance(predictions, list):
+            # Kalau multitask, Hb sering ada di output terakhir atau index tertentu.
+            # Di kode lama kamu pakai index [1].
+            # Kita coba: kalau ada >=2, ambil [1]; kalau tidak, ambil terakhir.
+            if len(predictions) >= 2:
+                return float(np.squeeze(predictions[1]))
+            return float(np.squeeze(predictions[-1]))
+
+        return float(np.squeeze(predictions))
+
+    def predict_single_model(self, model, img_path: str, model_name="Model", is_eye=False):
         if is_eye:
             pil_img = self.smart_crop_eye(img_path)
+            if pil_img is None:
+                pil_img = Image.open(img_path).convert("RGB")
         else:
-            pil_img = Image.open(img_path).convert('RGB') # Kuku tidak perlu crop
-            
-        # 2. Preprocess
-        processed_img = self.preprocess_image(pil_img)
-        
-        # 3. Predict
-        predictions = model.predict(processed_img)
+            pil_img = Image.open(img_path).convert("RGB")
 
-        # 4. Extract Output (Multitask logic)
-        if isinstance(predictions, list) and len(predictions) >= 2:
-            # Index 1 adalah Regresi Hb
-            hb_pred = float(np.squeeze(predictions[1])) 
-            print(f"📊 {model_name} Result -> Hb: {hb_pred:.2f}")
-            return hb_pred
-        else:
-            val = float(np.squeeze(predictions))
-            print(f"⚠️ {model_name} output tunggal: {val}")
-            return val
+        x = self.preprocess_image(pil_img)
+        preds = model.predict(x, verbose=0)
+
+        hb = self._extract_hb(preds)
+        print(f"📊 {model_name} Hb: {hb:.2f}")
+        return hb
 
     def predict(self, eye_image_path=None, nail_image_path=None):
-        self.load_models() 
-        
+        self.load_models()
+
         hb_eye = None
         hb_nail = None
 
@@ -151,5 +175,6 @@ class AnemiaPredictor:
             hb_nail = self.predict_single_model(self.nail_model, nail_image_path, "Kuku", is_eye=False)
 
         return hb_eye, hb_nail
+
 
 ai_service = AnemiaPredictor()
