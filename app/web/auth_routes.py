@@ -6,6 +6,7 @@ from app.models.user import User
 
 web_auth_bp = Blueprint("web_auth", __name__, url_prefix="/web")
 
+
 @web_auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     # Kalau sudah login, lempar ke dashboard sesuai role
@@ -48,10 +49,7 @@ def login():
 
 
 @web_auth_bp.route("/logout")
+@login_required
 def logout():
     logout_user()
-    resp = redirect(url_for("web_auth.login"))
-    resp.delete_cookie("session")
-    return resp
-
-
+    return redirect(url_for("web_auth.login"))

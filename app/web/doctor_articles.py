@@ -1,15 +1,23 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.models.article import Article
 from app.extensions import db
-from app.web.firebase_guard import firebase_web_required
 import os, time
 
 doctor_article_bp = Blueprint("doctor_article", __name__, url_prefix="/doctor/articles")
+
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
+
+
+def _require_doctor() -> bool:
+    """Pastikan user yang login adalah DOKTER."""
+    return current_user.is_authenticated and getattr(current_user, "role", None) == "DOKTER"
+
 
 def _allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[-1].lower() in ALLOWED_EXTENSIONS
+
 
 def _delete_file_if_exists(relative_path: str):
     if not relative_path:
@@ -19,27 +27,38 @@ def _delete_file_if_exists(relative_path: str):
     if os.path.exists(abs_path):
         os.remove(abs_path)
 
+
 # ===========================
 # LIST ARTIKEL DOKTER
 # ===========================
 @doctor_article_bp.route("/")
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def list_articles():
-    doctor = request.current_user
+    if not _require_doctor():
+        return "Unauthorized", 403
 
     articles = (
         Article.query
-        .filter_by(author_id=doctor.id)
+        .filter_by(author_id=current_user.id)
         .order_by(Article.created_at.desc())
         .all()
     )
 
-    return render_template("web/doctor/articles/list.html", articles=articles, doctor=doctor)
+    return render_template(
+        "web/doctor/articles/list.html",
+        articles=articles,
+        doctor=current_user
+    )
 
+
+# ===========================
+# CREATE ARTIKEL
+# ===========================
 @doctor_article_bp.route("/create", methods=["GET", "POST"])
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def create_article():
-    doctor = request.current_user
+    if not _require_doctor():
+        return "Unauthorized", 403
 
     if request.method == "POST":
         title = (request.form.get("title") or "").strip()
@@ -53,12 +72,11 @@ def create_article():
         image_url = None
         file = request.files.get("image")
         if file and file.filename:
-            ext = file.filename.rsplit(".", 1)[-1].lower()
-            if ext not in ["jpg", "jpeg", "png"]:
+            if not _allowed_file(file.filename):
                 flash("Format gambar harus jpg/jpeg/png.", "danger")
                 return redirect(url_for("doctor_article.create_article"))
 
-            filename = f"article_doctor_{doctor.id}_{int(time.time())}_{secure_filename(file.filename)}"
+            filename = f"article_doctor_{current_user.id}_{int(time.time())}_{secure_filename(file.filename)}"
             upload_folder = current_app.config["UPLOAD_FOLDER"]
             os.makedirs(upload_folder, exist_ok=True)
             file.save(os.path.join(upload_folder, filename))
@@ -69,7 +87,7 @@ def create_article():
             content=content,
             tags=tags if tags else None,
             image_url=image_url,
-            author_id=doctor.id
+            author_id=current_user.id
         )
 
         db.session.add(new_article)
@@ -78,16 +96,21 @@ def create_article():
         flash("Artikel berhasil dibuat.", "success")
         return redirect(url_for("doctor_article.list_articles"))
 
-    return render_template("web/doctor/articles/create.html", doctor=doctor)
+    return render_template("web/doctor/articles/create.html", doctor=current_user)
 
 
+# ===========================
+# EDIT ARTIKEL
+# ===========================
 @doctor_article_bp.route("/<int:id>/edit", methods=["GET", "POST"])
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def edit_article(id):
-    doctor = request.current_user
+    if not _require_doctor():
+        return "Unauthorized", 403
+
     article = Article.query.get_or_404(id)
 
-    if article.author_id != doctor.id:
+    if article.author_id != current_user.id:
         return "Unauthorized", 403
 
     if request.method == "POST":
@@ -105,17 +128,15 @@ def edit_article(id):
 
         file = request.files.get("image")
         if file and file.filename:
-            ext = file.filename.rsplit(".", 1)[-1].lower()
-            if ext not in ["jpg", "jpeg", "png"]:
+            if not _allowed_file(file.filename):
                 flash("Format gambar harus jpg/jpeg/png.", "danger")
                 return redirect(url_for("doctor_article.edit_article", id=id))
 
+            # hapus gambar lama
             if article.image_url:
-                old_path = os.path.join(current_app.config.get("BASE_DIR", os.getcwd()), article.image_url)
-                if os.path.exists(old_path):
-                    os.remove(old_path)
+                _delete_file_if_exists(article.image_url)
 
-            filename = f"article_doctor_{doctor.id}_{int(time.time())}_{secure_filename(file.filename)}"
+            filename = f"article_doctor_{current_user.id}_{int(time.time())}_{secure_filename(file.filename)}"
             upload_folder = current_app.config["UPLOAD_FOLDER"]
             os.makedirs(upload_folder, exist_ok=True)
             file.save(os.path.join(upload_folder, filename))
@@ -125,22 +146,29 @@ def edit_article(id):
         flash("Artikel berhasil diperbarui.", "success")
         return redirect(url_for("doctor_article.list_articles"))
 
-    return render_template("web/doctor/articles/edit.html", article=article, doctor=doctor)
+    return render_template(
+        "web/doctor/articles/edit.html",
+        article=article,
+        doctor=current_user
+    )
 
 
+# ===========================
+# DELETE ARTIKEL
+# ===========================
 @doctor_article_bp.route("/<int:id>/delete", methods=["POST"])
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def delete_article(id):
-    doctor = request.current_user
+    if not _require_doctor():
+        return "Unauthorized", 403
+
     article = Article.query.get_or_404(id)
 
-    if article.author_id != doctor.id:
+    if article.author_id != current_user.id:
         return "Unauthorized", 403
 
     if article.image_url:
-        old_path = os.path.join(current_app.config.get("BASE_DIR", os.getcwd()), article.image_url)
-        if os.path.exists(old_path):
-            os.remove(old_path)
+        _delete_file_if_exists(article.image_url)
 
     db.session.delete(article)
     db.session.commit()

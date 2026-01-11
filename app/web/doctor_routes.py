@@ -5,19 +5,22 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.extensions import db
 import os, time
+
 from app.models.article import Article
 from app.models.consultation import Consultation
-
-from app.web.firebase_guard import firebase_web_required
 
 doctor_bp = Blueprint("doctor", __name__, url_prefix="/doctor")
 
 
+def _require_doctor() -> bool:
+    """Pastikan user yang login adalah DOKTER."""
+    return current_user.is_authenticated and getattr(current_user, "role", None) == "DOKTER"
+
+
 @doctor_bp.route("/dashboard")
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def dashboard():
-    current_user = request.current_user
-    if current_user.role != "DOKTER":
+    if not _require_doctor():
         return "Unauthorized", 403
 
     # Hitung artikel dokter
@@ -33,21 +36,21 @@ def dashboard():
         total_consultations=total_consultations
     )
 
+
 @doctor_bp.route("/verification", methods=["GET", "POST"])
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def verification():
-    current_user = request.current_user
-    if current_user.role != "DOKTER":
+    if not _require_doctor():
         return "Unauthorized", 403
 
     if request.method == "POST":
-        file = request.files.get("file")
+        # KUNCI: key harus sama dengan name di HTML: verification_doc
+        file = request.files.get("verification_doc")
 
         if not file or file.filename == "":
             flash("Harap pilih file STR/SIP terlebih dahulu.", "danger")
             return redirect(url_for("doctor.verification"))
 
-        # Validasi ekstensi
         allowed_ext = {"png", "jpg", "jpeg", "pdf"}
         ext = file.filename.rsplit(".", 1)[-1].lower()
 
@@ -55,30 +58,30 @@ def verification():
             flash("Format file tidak diizinkan (hanya PNG, JPG, JPEG, PDF).", "danger")
             return redirect(url_for("doctor.verification"))
 
-        # Simpan file
         filename = f"verification_{current_user.id}_{int(time.time())}_{secure_filename(file.filename)}"
 
-        upload_folder = current_app.config['UPLOAD_FOLDER']
+        upload_folder = current_app.config["UPLOAD_FOLDER"]
         os.makedirs(upload_folder, exist_ok=True)
 
         save_path = os.path.join(upload_folder, filename)
         file.save(save_path)
 
         # Hapus file lama jika ada
-        if current_user.verification_doc:
+        if getattr(current_user, "verification_doc", None):
             try:
-                old_path = os.path.join(current_app.config['BASE_DIR'], current_user.verification_doc)
+                old_path = os.path.join(
+                    current_app.config.get("BASE_DIR", os.getcwd()),
+                    current_user.verification_doc
+                )
                 if os.path.exists(old_path):
                     os.remove(old_path)
-            except:
+            except Exception:
                 pass
 
-        # Simpan path relatif di DB
         current_user.verification_doc = f"static/uploads/{filename}"
         db.session.commit()
 
         flash("Dokumen verifikasi berhasil di-upload. Menunggu persetujuan admin.", "success")
         return redirect(url_for("doctor.dashboard"))
 
-    # GET → tampilkan form
     return render_template("web/doctor/verification.html", doctor=current_user)

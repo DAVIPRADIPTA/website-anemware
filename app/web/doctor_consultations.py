@@ -1,28 +1,33 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 from app.models.consultation import Consultation, ChatMessage
 from app.extensions import db, socketio
 
-from app.web.firebase_guard import firebase_web_required
-
-
 doctor_consult_bp = Blueprint("doctor_consult", __name__, url_prefix="/doctor/consultations")
+
+
+def _require_doctor():
+    """Helper: pastikan user yang login adalah DOKTER."""
+    if not current_user.is_authenticated:
+        return False
+    return getattr(current_user, "role", None) == "DOKTER"
 
 
 # ===========================
 # LIST KONSULTASI DOKTER
 # ===========================
 @doctor_consult_bp.route("/")
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def list_consultations():
-    current_user = request.current_user
-
-    if current_user.role != "DOKTER":
+    if not _require_doctor():
         return "Unauthorized", 403
 
-    consultations = Consultation.query.filter_by(
-        doctor_id=current_user.id
-    ).order_by(Consultation.created_at.desc()).all()
+    consultations = (
+        Consultation.query
+        .filter_by(doctor_id=current_user.id)
+        .order_by(Consultation.created_at.desc())
+        .all()
+    )
 
     return render_template(
         "web/doctor/consultations/list.html",
@@ -31,16 +36,13 @@ def list_consultations():
     )
 
 
-
 # ===========================
 # HALAMAN CHAT
 # ===========================
 @doctor_consult_bp.route("/<int:id>")
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def chat(id):
-    current_user = request.current_user
-
-    if current_user.role != "DOKTER":
+    if not _require_doctor():
         return "Unauthorized", 403
 
     consultation = Consultation.query.get_or_404(id)
@@ -48,10 +50,13 @@ def chat(id):
     if consultation.doctor_id != current_user.id:
         return "Unauthorized", 403
 
-    messages = ChatMessage.query.filter_by(
-        consultation_id=id
-    ).order_by(ChatMessage.created_at.asc()).all()
-    
+    messages = (
+        ChatMessage.query
+        .filter_by(consultation_id=id)
+        .order_by(ChatMessage.created_at.asc())
+        .all()
+    )
+
     return render_template(
         "web/doctor/consultations/chat.html",
         consultation=consultation,
@@ -64,10 +69,9 @@ def chat(id):
 # KIRIM PESAN DARI WEB DOKTER
 # ===========================
 @doctor_consult_bp.route("/<int:id>/send", methods=["POST"])
-@firebase_web_required(roles=["DOKTER"])
+@login_required
 def send_message_web(id):
-    current_user = request.current_user
-    if current_user.role != "DOKTER":
+    if not _require_doctor():
         return {"status": "error", "message": "Unauthorized"}, 403
 
     consultation = Consultation.query.get_or_404(id)
@@ -75,13 +79,12 @@ def send_message_web(id):
     if consultation.doctor_id != current_user.id:
         return {"status": "error", "message": "Unauthorized"}, 403
 
-    data = request.get_json()
-    message_text = data.get("message", "").strip()
+    data = request.get_json(silent=True) or {}
+    message_text = (data.get("message") or "").strip()
 
     if not message_text:
         return {"status": "error", "message": "Pesan kosong"}, 400
 
-    # Simpan pesan
     new_msg = ChatMessage(
         consultation_id=id,
         sender_id=current_user.id,
@@ -92,11 +95,14 @@ def send_message_web(id):
 
     timestamp = new_msg.created_at.isoformat()
 
-    # Broadcast lengkap
-    socketio.emit("new_message", {
-        "sender_id": current_user.id,
-        "message": message_text,
-        "timestamp": timestamp
-    }, to=f"consultation_{id}")
+    socketio.emit(
+        "new_message",
+        {
+            "sender_id": current_user.id,
+            "message": message_text,
+            "timestamp": timestamp
+        },
+        to=f"consultation_{id}"
+    )
 
-    return {"status": "success", "message": "sent", "timestamp": timestamp}
+    return {"status": "success", "message": "sent", "timestamp": timestamp}, 200

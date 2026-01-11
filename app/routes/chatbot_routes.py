@@ -1,31 +1,46 @@
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 from app.extensions import db
 from app.models.chatbot import ChatbotSession, ChatbotMessage
 
 chatbot_bp = Blueprint("chatbot", __name__, url_prefix="/api/chatbot")
 
+
+def _current_user_id() -> int:
+    """Ambil user_id dari JWT identity (yang kamu set sebagai str(user.id))."""
+    try:
+        return int(get_jwt_identity())
+    except Exception:
+        return 0
+
+
 @chatbot_bp.route("/session", methods=["POST"])
+@jwt_required()
 def create_session():
     data = request.get_json(silent=True) or {}
-    user_id = data.get("user_id")
-    title = data.get("title")
+    title = (data.get("title") or "").strip() or None
 
+    user_id = _current_user_id()
     if not user_id:
-        return jsonify({"error": "user_id wajib"}), 400
+        return jsonify({"error": "Unauthorized"}), 401
 
     s = ChatbotSession(user_id=user_id, title=title)
     db.session.add(s)
     db.session.commit()
+
     return jsonify({"session_id": s.id, "title": s.title}), 201
 
+
 @chatbot_bp.route("/send", methods=["POST"])
+@jwt_required()
 def send():
     """
     Body:
     {
       "session_id": 1,
-      "user_id": 123,
       "message": "halo",
+      "history_limit": 20, (optional)
       "max_new_tokens": 256, (optional)
       "temperature": 0.7, (optional)
       "top_p": 0.9 (optional)
@@ -33,11 +48,14 @@ def send():
     """
     data = request.get_json(silent=True) or {}
     session_id = data.get("session_id")
-    user_id = data.get("user_id")
     message = (data.get("message") or "").strip()
 
-    if not session_id or not user_id or not message:
-        return jsonify({"error": "session_id, user_id, message wajib"}), 400
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if not session_id or not message:
+        return jsonify({"error": "session_id dan message wajib"}), 400
 
     session = ChatbotSession.query.filter_by(id=session_id, user_id=user_id).first()
     if not session:
@@ -47,21 +65,20 @@ def send():
     db.session.add(ChatbotMessage(session_id=session_id, role="user", content=message))
     db.session.commit()
 
-    # Ambil history terakhir (misal 10 pasang => 20 message)
+    # Ambil history terakhir
     history_limit = int(data.get("history_limit", 20))
-    history = (ChatbotMessage.query
-               .filter_by(session_id=session_id)
-               .order_by(ChatbotMessage.id.desc())
-               .limit(history_limit)
-               .all())
+    history = (
+        ChatbotMessage.query
+        .filter_by(session_id=session_id)
+        .order_by(ChatbotMessage.id.desc())
+        .limit(history_limit)
+        .all()
+    )
     history = list(reversed(history))
 
-    # Jadikan "Input" agar sesuai template alpaca kamu:
-    # - Instruction = pesan terakhir user
-    # - Input = ringkasan history sebelumnya
-    # Ini menjaga format prompt kamu tetap sama.
+    # Susun input history
     previous_turns = []
-    for m in history[:-1]:  # kecuali pesan terakhir (yang barusan dikirim)
+    for m in history[:-1]:
         previous_turns.append(f"{m.role.upper()}: {m.content}")
     input_text = "\n".join(previous_turns)
 
@@ -80,24 +97,33 @@ def send():
     )
 
     db.session.add(ChatbotMessage(session_id=session_id, role="assistant", content=reply))
+
+    # (Opsional) kalau model ChatbotSession punya updated_at auto-update lewat trigger,
+    # ini tidak perlu. Kalau tidak, kamu bisa set manual:
+    # session.updated_at = datetime.utcnow()
+
     db.session.commit()
 
     return jsonify({"reply": reply}), 200
 
+
 @chatbot_bp.route("/history/<int:session_id>", methods=["GET"])
+@jwt_required()
 def history(session_id):
-    user_id = request.args.get("user_id", type=int)
+    user_id = _current_user_id()
     if not user_id:
-        return jsonify({"error": "user_id wajib (query param)"}), 400
+        return jsonify({"error": "Unauthorized"}), 401
 
     session = ChatbotSession.query.filter_by(id=session_id, user_id=user_id).first()
     if not session:
         return jsonify({"error": "session tidak ditemukan"}), 404
 
-    msgs = (ChatbotMessage.query
-            .filter_by(session_id=session_id)
-            .order_by(ChatbotMessage.id.asc())
-            .all())
+    msgs = (
+        ChatbotMessage.query
+        .filter_by(session_id=session_id)
+        .order_by(ChatbotMessage.id.asc())
+        .all()
+    )
 
     return jsonify({
         "session_id": session_id,
@@ -107,15 +133,13 @@ def history(session_id):
         ]
     }), 200
 
+
 @chatbot_bp.route("/sessions", methods=["GET"])
+@jwt_required()
 def list_sessions():
-    """
-    Query params:
-    ?user_id=123
-    """
-    user_id = request.args.get("user_id", type=int)
+    user_id = _current_user_id()
     if not user_id:
-        return jsonify({"error": "user_id wajib (query param)"}), 400
+        return jsonify({"error": "Unauthorized"}), 401
 
     sessions = (
         ChatbotSession.query
