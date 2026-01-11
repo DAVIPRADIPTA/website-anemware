@@ -43,6 +43,8 @@ def create_app(config_class=Config):
     from app.routes.consultation_routes import consultation_bp
     # (opsional) chatbot routes
     from app.routes.chatbot_routes import chatbot_bp
+    from app.routes.feedback_routes import feedback_bp
+
 
     from app.web.auth_routes import web_auth_bp
     from app.web.admin_routes import admin_bp
@@ -64,6 +66,7 @@ def create_app(config_class=Config):
     app.register_blueprint(screening_bp)
     app.register_blueprint(consultation_bp)
     app.register_blueprint(chatbot_bp)
+    app.register_blueprint(feedback_bp)
 
     app.register_blueprint(web_auth_bp)
     app.register_blueprint(admin_bp)
