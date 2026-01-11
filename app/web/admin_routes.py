@@ -5,7 +5,13 @@ from flask_login import login_required, current_user
 from app.models.user import User
 from app.models.article import Article
 from app.models.consultation import Consultation
-from app.models.consultation import Payment     # kalau tabel Payment ada
+from app.models.consultation import Payment  
+from flask import jsonify, current_app
+from app.models.feedback import Feedback
+from sqlalchemy import func
+import numpy as np
+
+   # kalau tabel Payment ada
                                                   # sesuaikan importnya kalau beda
 from app.extensions import db   # ← HARUS ADA INI
 
@@ -47,6 +53,42 @@ def dashboard():
         total_payments_success=total_payments_success,
     )
 
+@admin_bp.route("/sentiment-data", methods=["GET"])
+@login_required
+def sentiment_data():
+    if current_user.role != "ADMIN":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    model = current_app.extensions.get("sentiment_model")
+    if not model:
+        return jsonify({"error": "sentiment model not loaded"}), 500
+
+    rows = (
+        Feedback.query
+        .with_entities(Feedback.comment)
+        .filter(Feedback.comment.isnot(None))
+        .all()
+    )
+
+    counts = {"positif": 0, "netral": 0, "negatif": 0}
+    conf_sum = {"positif": 0.0, "netral": 0.0, "negatif": 0.0}
+
+    for (comment,) in rows:
+        label, conf = predict_sentiment_id(comment, model)
+        counts[label] += 1
+        conf_sum[label] += conf
+
+    total = sum(counts.values())
+    avg_conf = {
+        k: (conf_sum[k] / counts[k]) if counts[k] else 0.0
+        for k in counts
+    }
+
+    return jsonify({
+        "counts": counts,
+        "total": total,
+        "avg_confidence": avg_conf
+    }), 200
 # ======================
 # LIST DOKTER
 # ======================
@@ -109,3 +151,29 @@ def edit_doctor(doctor_id):
         "web/admin/doctor/edit.html",
         doctor=doctor
     )
+
+def predict_sentiment_id(text: str, model):
+    """
+    Mengembalikan:
+    - label_id: 'positif' / 'netral' / 'negatif'
+    - confidence: float (0-100)
+    """
+    text = (text or "").strip()
+    if not text:
+        return "netral", 0.0
+
+    # label dari model (temanmu)
+    label = model.predict([text])[0]
+
+    # confidence
+    confidence = 0.0
+    if hasattr(model, "predict_proba"):
+        proba = model.predict_proba([text])[0]
+        confidence = float(np.max(proba) * 100)
+
+    # pastikan string konsisten
+    label = str(label).strip().lower()
+    if label not in ("positif", "netral", "negatif"):
+        label = "netral"
+
+    return label, confidence

@@ -20,7 +20,7 @@ class AnemiaPredictor:
             model_dir = os.path.join(app_dir, 'model')
             
             # 1. Load Model Mata
-            eye_filename = 'hb_multitask_model.keras' 
+            eye_filename = 'model_konjungtiva.h5' 
             eye_path = os.path.join(model_dir, eye_filename)
             print(f"🔍 Loading Model Mata: {eye_filename}...")
             try:
@@ -30,7 +30,7 @@ class AnemiaPredictor:
                 print(f"❌ Gagal memuat Model Mata: {e}")
 
             # 2. Load Model Kuku
-            nail_filename = 'kuku.keras' 
+            nail_filename = 'model_kuku.h5' 
             nail_path = os.path.join(model_dir, nail_filename)
             print(f"🔍 Loading Model Kuku: {nail_filename}...")
             try:

@@ -9,7 +9,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Konfigurasi Upload
-    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'app/static/uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # Batas max file 16MB
     
@@ -24,8 +24,16 @@ class Config:
     # === Chatbot / Unsloth ===
     BASE_MODEL_NAME = "unsloth/Llama-3.2-3B-Instruct-bnb-4bit"
     LORA_PATH = os.path.join(BASE_DIR, "app", "model", "model_3b_anemia")   # path folder adapter kamu
+
+    SENTIMENT_MODEL_PATH = os.path.join(
+        BASE_DIR,
+        "app",
+        "model",
+        "model_feedback_final.pkl"
+    )
     MAX_NEW_TOKENS = 256
     TEMPERATURE = 0.7
     TOP_P = 0.9
+
 
 

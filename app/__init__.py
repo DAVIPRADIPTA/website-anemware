@@ -1,4 +1,5 @@
 from flask import Flask
+import joblib
 from config import Config
 from app.extensions import db, migrate, cors, socketio, jwt, bcrypt, login_manager
 from app.models.user import User
@@ -35,6 +36,12 @@ def create_app(config_class=Config):
     # )
     # engine.load()
     # app.extensions["llm_engine"] = engine
+
+        # # ==== LOAD  SENTIMEN MODEL ====
+
+    sentiment_model_path = app.config.get("SENTIMENT_MODEL_PATH")  # misal: "models/sentiment.pkl"
+    if sentiment_model_path:
+        app.extensions["sentiment_model"] = joblib.load(sentiment_model_path)
 
     # Register blueprints
     from app.routes.auth_routes import auth_bp

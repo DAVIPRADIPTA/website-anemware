@@ -103,6 +103,22 @@
                 <div class="stat-value">{{ total_consultations }}</div>
             </div>
         </div>
+        <div class="col-12">
+            <div class="stat-card">
+                <div class="stat-top d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="stat-title mb-0">Sentiment Feedback</h5>
+                        <div class="stat-sub">Berdasarkan komentar user</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-bar-chart"></i></div>
+                </div>
+
+                <div style="height:320px;">
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+            </div>
+        </div>
+
 
 
         {% if total_payments_success is not none %}
@@ -122,4 +138,44 @@
 
     </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    (async function () {
+        try {
+            const res = await fetch("/admin/sentiment-data");
+            console.log("sentiment-data status:", res.status);
+
+            const data = await res.json();
+            console.log("sentiment-data json:", data);
+
+            const counts = data.counts || { positif: 0, netral: 0, negatif: 0 };
+
+            const values = [counts.positif, counts.netral, counts.negatif];
+
+            const canvas = document.getElementById("sentimentChart");
+            if (!canvas) {
+                console.error("Canvas #sentimentChart not found");
+                return;
+            }
+
+            const allZero = values.every(v => v === 0);
+
+            new Chart(canvas, {
+                type: "doughnut",
+                data: {
+                    labels: allZero ? ["No Data", "No Data", "No Data"] : ["Positif", "Netral", "Negatif"],
+                    datasets: [{ data: allZero ? [1, 1, 1] : values }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        } catch (e) {
+            console.error("Failed load sentiment data:", e);
+        }
+    })();
+</script>
 {% endblock %}
