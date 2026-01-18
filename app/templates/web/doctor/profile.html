@@ -1,0 +1,73 @@
+{% extends "web/doctor/_layout.html" %}
+{% block title %}Pengaturan Profil{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>Pengaturan Profil</h2>
+    <p>Perbarui informasi profil dokter dan foto profil.</p>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  <div class="mb-3">
+    {% for category, msg in messages %}
+      <div class="alert alert-{{ category }} mb-2">{{ msg }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endwith %}
+
+<div class="card p-4">
+  <form method="POST" enctype="multipart/form-data">
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        <label class="form-label">Nama Lengkap</label>
+        <input type="text" name="full_name" class="form-control"
+               value="{{ doctor.full_name or '' }}" required>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <label class="form-label">Spesialisasi</label>
+        <input type="text" name="specialization" class="form-control"
+               value="{{ doctor.specialization or '' }}" placeholder="Contoh: Dokter Umum">
+      </div>
+
+      <div class="col-12 col-md-6">
+        <label class="form-label">Harga Konsultasi (Rp)</label>
+        <input type="number" name="consultation_price" class="form-control" min="0"
+               value="{{ doctor.consultation_price or 0 }}">
+      </div>
+
+      <div class="col-12 col-md-6">
+        <label class="form-label">Foto Profil (PNG/JPG)</label>
+        <input type="file" name="profile_image" class="form-control" accept=".png,.jpg,.jpeg">
+
+        {% if doctor.profile_image %}
+          <div class="mt-2">
+            <img src="/{{ doctor.profile_image }}" alt="Profile"
+                 style="width:72px;height:72px;object-fit:cover;border-radius:12px;">
+            <div class="small text-muted mt-1">Foto saat ini</div>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Bio</label>
+        <textarea name="bio" class="form-control" rows="4"
+                  placeholder="Ceritakan singkat tentang pengalaman / layanan kamu...">{{ doctor.bio or '' }}</textarea>
+      </div>
+
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-success">
+          <i class="bi bi-save me-1"></i>Simpan Perubahan
+        </button>
+        <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-outline-secondary">
+          Batal
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

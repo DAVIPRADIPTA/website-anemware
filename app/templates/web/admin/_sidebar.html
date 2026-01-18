@@ -44,6 +44,12 @@
     <i class="bi bi-chat-dots"></i>
     <span>Consultations</span>
   </a>
+  <a href="{{ url_for('admin_withdraw.list_withdrawals') }}"
+    class="side-link {% if (request.endpoint or '').startswith('admin_withdraw.') %}active{% endif %}">
+    <i class="bi bi-cash-coin"></i>
+    <span>Withdrawals</span>
+  </a>
+
 
 
 

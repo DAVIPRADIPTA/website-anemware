@@ -4,6 +4,8 @@ from config import Config
 from app.extensions import db, migrate, cors, socketio, jwt, bcrypt, login_manager
 from app.models.user import User
 from app.extensions_firebase import init_firebase
+from flask import Flask, render_template
+
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -61,7 +63,7 @@ def create_app(config_class=Config):
     from app.web.admin_articles import admin_article_bp
     from app.web.admin_payment import admin_payment_bp
     from app.web.admin_consultations import admin_consult_bp
-    
+    from app.web.admin_withdraw import admin_withdraw_bp
 
 
 
@@ -83,6 +85,7 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_article_bp)
     app.register_blueprint(admin_payment_bp)
     app.register_blueprint(admin_consult_bp)
+    app.register_blueprint(admin_withdraw_bp)
     
 
 
@@ -95,6 +98,6 @@ def create_app(config_class=Config):
 
     @app.route("/")
     def index():
-        return "Health App Backend is Running!"
+        return render_template("web/index.html")
 
     return app

@@ -1,0 +1,119 @@
+{% extends "web/doctor/_layout.html" %}
+{% block title %}Riwayat Skrining Pasien{% endblock %}
+
+{% block head_extra %}
+<style>
+  .wrap-card{
+    border-radius:16px;
+    border:1px solid var(--border);
+    box-shadow:var(--shadow);
+    background:var(--surface);
+  }
+  .table thead th{
+    background:#f8fafc;
+    border-bottom:1px solid var(--border);
+    font-weight:800;
+    color:#111827;
+    white-space:nowrap;
+  }
+  .muted{ color:var(--muted); font-size:.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>Riwayat Skrining</h2>
+    <p class="muted mb-0">
+      Pasien: <strong>{{ patient.full_name if patient else ('#' ~ patient_id) }}</strong>
+      <span class="ms-2">ID: #{{ patient.id if patient else patient_id }}</span>
+    </p>
+  </div>
+
+  <a href="{{ url_for('doctor_consult.list_consultations') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Kembali
+  </a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  <div class="mb-3">
+    {% for category, msg in messages %}
+      <div class="alert alert-{{ category }} mb-2">{{ msg }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endwith %}
+
+<div class="card wrap-card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Hb (g/dL)</th>
+            <th>Gejala</th>
+            <th>Skor</th>
+            <th>Risiko</th>
+            <th>Gambar</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td class="muted">
+              {{ r.created_at.strftime("%d %b %Y %H:%M") if r.created_at else "-" }}
+            </td>
+
+            <td>
+              <span class="fw-semibold">{{ "%.2f"|format(r.hb_prediction) if r.hb_prediction is not none else "-" }}</span>
+            </td>
+
+            <td style="max-width:340px;">
+              <div class="muted">
+                {{ r.symptoms_list or "-" }}
+              </div>
+              <div class="small text-muted">Symptoms Score: {{ r.symptoms_score if r.symptoms_score is not none else "-" }}</div>
+            </td>
+
+            <td>
+              <div class="fw-semibold">Final: {{ r.final_score if r.final_score is not none else "-" }}</div>
+            </td>
+
+            <td>
+              {% if r.risk_level == 'TINGGI' %}
+                <span class="badge bg-danger">TINGGI</span>
+              {% elif r.risk_level == 'SEDANG' %}
+                <span class="badge bg-warning text-dark">SEDANG</span>
+              {% elif r.risk_level == 'RENDAH' %}
+                <span class="badge bg-success">RENDAH</span>
+              {% else %}
+                <span class="badge bg-secondary">-</span>
+              {% endif %}
+            </td>
+
+            <td class="small">
+              {% if r.eye_image_path %}
+                <a href="/{{ r.eye_image_path }}" target="_blank">Eye</a>
+              {% else %}-{% endif %}
+              |
+              {% if r.nail_image_path %}
+                <a href="/{{ r.nail_image_path }}" target="_blank">Nail</a>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+
+          {% if records|length == 0 %}
+          <tr>
+            <td colspan="6" class="text-center muted py-4">Belum ada riwayat skrining.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

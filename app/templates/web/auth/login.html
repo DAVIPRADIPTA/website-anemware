@@ -109,7 +109,7 @@
 
         <div class="divider">atau login dengan</div>
 
-        
+
 
         <button type="button" class="btn btn-outline-success w-100 d-flex align-items-center justify-content-center"
             onclick="loginGoogle('DOKTER')">
@@ -119,66 +119,70 @@
         </button>
 
 
-        <div class="mt-3 text-center text-muted" style="font-size: 0.75rem;">
-            Hanya akun dengan role <strong>ADMIN</strong> atau <strong>DOKTER</strong> yang bisa mengakses panel ini.
+        <div class="mt-3 text-center" style="font-size: 0.85rem;">
+            <span class="text-muted">Belum punya akun dokter?</span>
+            <a href="{{ url_for('web_auth.register') }}" class="text-decoration-none fw-semibold">
+                Daftar di sini
+            </a>
         </div>
+
     </div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
-                apiKey: "AIzaSyA4UDKSvPjJRFXIa9WCAwUimF-QWrQWHbY",
-                authDomain: "anemia-89bad.firebaseapp.com",
-                projectId: "anemia-89bad",
-                storageBucket: "anemia-89bad.firebasestorage.app",
-                messagingSenderId: "30357319168",
-                appId: "1:30357319168:web:0e861b4f9f240407b372e5",
-                measurementId: "G-QELZL68DS1"
+            apiKey: "AIzaSyA4UDKSvPjJRFXIa9WCAwUimF-QWrQWHbY",
+            authDomain: "anemia-89bad.firebaseapp.com",
+            projectId: "anemia-89bad",
+            storageBucket: "anemia-89bad.firebasestorage.app",
+            messagingSenderId: "30357319168",
+            appId: "1:30357319168:web:0e861b4f9f240407b372e5",
+            measurementId: "G-QELZL68DS1"
         };
 
-         let auth;
-            try {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                console.log("Firebase initialized OK");
-            } catch (e) {
-                console.error("Firebase init failed:", e);
-                alert("Firebase init gagal: " + (e?.message || e));
-            }
+        let auth;
+        try {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            console.log("Firebase initialized OK");
+        } catch (e) {
+            console.error("Firebase init failed:", e);
+            alert("Firebase init gagal: " + (e?.message || e));
+        }
 
         async function loginGoogle(role) {
-    try {
-      console.log("loginGoogle called, role =", role);
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const idToken = await result.user.getIdToken();
+            try {
+                console.log("loginGoogle called, role =", role);
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                const idToken = await result.user.getIdToken();
 
-      const res = await fetch("/sessionLogin", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ idToken, role })
-      });
+                const res = await fetch("/sessionLogin", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ idToken, role })
+                });
 
-      const data = await res.json().catch(() => ({}));
-      console.log("sessionLogin:", res.status, data);
+                const data = await res.json().catch(() => ({}));
+                console.log("sessionLogin:", res.status, data);
 
-      if (!res.ok) {
-        alert(data.error || "Login gagal (sessionLogin)");
-        return;
-      }
+                if (!res.ok) {
+                    alert(data.error || "Login gagal (sessionLogin)");
+                    return;
+                }
 
-      if (data.role === "ADMIN") window.location.href = "/admin/dashboard";
-      else if (data.role === "DOKTER") window.location.href = "/doctor/dashboard";
-      else window.location.href = "/web/login";
-    } catch (e) {
-      console.error("Login error:", e);
-      alert("Login error: " + (e?.message || e));
-    }
-  }
+                if (data.role === "ADMIN") window.location.href = "/admin/dashboard";
+                else if (data.role === "DOKTER") window.location.href = "/doctor/dashboard";
+                else window.location.href = "/web/login";
+            } catch (e) {
+                console.error("Login error:", e);
+                alert("Login error: " + (e?.message || e));
+            }
+        }
 
-  window.loginGoogle = loginGoogle;
-  console.log("window.loginGoogle =", typeof window.loginGoogle);
+        window.loginGoogle = loginGoogle;
+        console.log("window.loginGoogle =", typeof window.loginGoogle);
     </script>
 
 </body>

@@ -103,6 +103,20 @@
                 <div class="stat-value">{{ total_consultations }}</div>
             </div>
         </div>
+        {% if total_payments_success is not none %}
+        <div class="col-md-6 col-lg-4">
+            <div class="stat-card">
+                <div class="stat-top d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="stat-title mb-0">Pembayaran Berhasil</h5>
+                        <div class="stat-sub">Transaksi sukses</div>
+                    </div>
+                    <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+                </div>
+                <div class="stat-value">{{ total_payments_success }}</div>
+            </div>
+        </div>
+        {% endif %}
         <div class="col-12">
             <div class="stat-card">
                 <div class="stat-top d-flex justify-content-between align-items-center">
@@ -121,20 +135,7 @@
 
 
 
-        {% if total_payments_success is not none %}
-        <div class="col-md-6 col-lg-4">
-            <div class="stat-card">
-                <div class="stat-top d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="stat-title mb-0">Pembayaran Berhasil</h5>
-                        <div class="stat-sub">Transaksi sukses</div>
-                    </div>
-                    <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
-                </div>
-                <div class="stat-value">{{ total_payments_success }}</div>
-            </div>
-        </div>
-        {% endif %}
+        
 
     </div>
 </div>

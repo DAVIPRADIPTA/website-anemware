@@ -162,18 +162,27 @@ def get_article_detail(article_id):
         return error("Artikel tidak ditemukan", 404)
     
     full_image_url = request.host_url + article.image_url if article.image_url else None
-    
+
+    # ✅ Tambahkan foto author (full URL)
+    author_photo = None
+    if article.author and article.author.profile_image:
+        author_photo = request.host_url + article.author.profile_image
+
     detail_data = {
         "id": article.id,
         "title": article.title,
-        "content": article.content, # Konten full
+        "content": article.content,
         "image": full_image_url,
-        "author": article.author.full_name,
+
+        "author": article.author.full_name if article.author else "Unknown",
+        "author_image": author_photo,  # ✅ ini tambahan
+
         "tags": article.tags,
         "created_at": article.created_at
     }
     
     return success(detail_data, "Detail artikel ditemukan")
+
 
 # --- 5. UPDATE ARTICLE (Edit & Ganti Gambar) ---
 @article_bp.route('/articles/<int:article_id>', methods=['PUT'])

@@ -19,41 +19,66 @@
 
   <div class="nav-section-title">Menu</div>
 
-  <a href="{{ url_for('doctor.dashboard') }}"
-     class="side-link {% if ep == 'doctor.dashboard' %}active{% endif %}">
+  <a href="{{ url_for('doctor.dashboard') }}" class="side-link {% if ep == 'doctor.dashboard' %}active{% endif %}">
     <i class="bi bi-speedometer2"></i>
     <span>Dashboard</span>
   </a>
 
   <a href="{{ url_for('doctor_consult.list_consultations') }}"
-     class="side-link {% if not verified %}disabled{% endif %} {% if ep.startswith('doctor_consult.') %}active{% endif %}">
+    class="side-link {% if not verified %}disabled{% endif %} {% if ep.startswith('doctor_consult.') %}active{% endif %}">
     <i class="bi bi-chat-dots"></i>
     <span>Konsultasi</span>
     {% if not verified %}<span class="lock ms-auto"><i class="bi bi-lock-fill"></i></span>{% endif %}
   </a>
 
   <a href="{{ url_for('doctor_article.list_articles') }}"
-     class="side-link {% if not verified %}disabled{% endif %} {% if ep.startswith('doctor_article.') %}active{% endif %}">
+    class="side-link {% if not verified %}disabled{% endif %} {% if ep.startswith('doctor_article.') %}active{% endif %}">
     <i class="bi bi-newspaper"></i>
     <span>Artikel Saya</span>
     {% if not verified %}<span class="lock ms-auto"><i class="bi bi-lock-fill"></i></span>{% endif %}
   </a>
 
   <a href="{{ url_for('doctor.verification') }}"
-     class="side-link {% if ep.startswith('doctor.verification') or ep == 'doctor.verification' %}active{% endif %}">
+    class="side-link {% if ep.startswith('doctor.verification') or ep == 'doctor.verification' %}active{% endif %}">
     <i class="bi bi-patch-check"></i>
     <span>Upload Verifikasi</span>
   </a>
 
-  <a href="#" class="side-link disabled">
+
+  <a href="{{ url_for('doctor.profile') }}" class="side-link {% if ep == 'doctor.profile' %}active{% endif %}">
     <i class="bi bi-gear"></i>
     <span>Pengaturan Profil</span>
-    <span class="lock ms-auto"><i class="bi bi-wrench-adjustable"></i></span>
   </a>
+
+  {# === TOGGLE ONLINE/OFFLINE DI ATAS SEPARATOR === #}
+  <div class="px-3 mt-3">
+    <form method="POST" action="{{ url_for('doctor.toggle_online') }}">
+      <input type="hidden" name="next" value="{{ request.path }}">
+
+      <div class="d-flex align-items-center justify-content-between">
+        <span class="small text-white-50">
+          <i class="bi bi-broadcast me-1"></i>Status Dokter
+        </span>
+
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" id="onlineSwitch" name="is_online" {% if doctor and
+            doctor.is_online %}checked{% endif %} onchange="this.form.submit()">
+        </div>
+      </div>
+
+      <div class="small mt-1 text-white">
+        {% if doctor and doctor.is_online %}
+        Online
+        {% else %}
+        Offline
+        {% endif %}
+      </div>
+    </form>
+  </div>
 
   <div class="sidebar-footer">
     <div class="user-chip">
-      <div class="hello">Halo,</div>
+      <div class="hello">Haloq,</div>
       <div class="name">{{ doctor.full_name if doctor else '' }}</div>
     </div>
     <a href="{{ url_for('web_auth.logout') }}" class="btn btn-light btn-sm">

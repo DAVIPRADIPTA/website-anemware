@@ -1,0 +1,101 @@
+{% extends "web/admin/_layout.html" %}
+{% block title %}Withdrawals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h2>Withdrawals</h2>
+    <p>Kelola request withdraw dokter.</p>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_withdraw.list_withdrawals', status='pending') }}">Pending</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_withdraw.list_withdrawals', status='paid') }}">Paid</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_withdraw.list_withdrawals', status='rejected') }}">Rejected</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+  <div class="mb-3">
+    {% for category, msg in messages %}
+      <div class="alert alert-{{ category }} mb-2">{{ msg }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endwith %}
+
+<div class="card p-0">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Dokter</th>
+          <th>Nominal</th>
+          <th>Bank</th>
+          <th>Tanggal</th>
+          <th>Status</th>
+          <th style="width:240px;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in withdrawals %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ w.doctor.full_name if w.doctor else ('#' ~ w.doctor_id) }}</div>
+            <div class="text-muted small">ID: #{{ w.doctor_id }}</div>
+          </td>
+          <td class="fw-semibold">Rp {{ "{:,.0f}".format(w.amount).replace(",", ".") }}</td>
+          <td>
+            <div class="fw-semibold">{{ w.bank_name }}</div>
+            <div class="text-muted small">{{ w.account_number }}</div>
+          </td>
+          <td class="text-muted small">{{ w.created_at.strftime("%Y-%m-%d %H:%M") if w.created_at else "-" }}</td>
+          <td>
+            {% if w.status == 'pending' %}
+              <span class="badge bg-warning text-dark">PENDING</span>
+            {% elif w.status == 'paid' %}
+              <span class="badge bg-success">PAID</span>
+            {% else %}
+              <span class="badge bg-danger">REJECTED</span>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if w.status == 'pending' %}
+              <div class="d-flex gap-2">
+                <form method="POST" action="{{ url_for('admin_withdraw.mark_paid', wid=w.id) }}">
+                  <button class="btn btn-success btn-sm" onclick="return confirm('Tandai PAID dan potong saldo dokter?')">
+                    <i class="bi bi-check2-circle me-1"></i>Paid
+                  </button>
+                </form>
+
+                <form method="POST" action="{{ url_for('admin_withdraw.reject', wid=w.id) }}">
+                  <input type="hidden" name="note" value="">
+                  <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Tolak request withdraw ini?')">
+                    <i class="bi bi-x-circle me-1"></i>Reject
+                  </button>
+                </form>
+              </div>
+            {% else %}
+              <span class="text-muted small">
+                Diproses: {{ w.processed_at.strftime("%Y-%m-%d %H:%M") if w.processed_at else "-" }}
+              </span>
+              {% if w.note %}
+                <div class="text-muted small">Catatan: {{ w.note }}</div>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+
+        {% if withdrawals|length == 0 %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">Tidak ada data.</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

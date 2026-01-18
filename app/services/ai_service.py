@@ -24,8 +24,8 @@ class AnemiaPredictor:
         self.is_loaded = False
 
         # model file names
-        self.eye_filename = "model_konjungtiva.h5"
-        self.nail_filename = "model_kuku.h5"
+        self.eye_filename = "hb_multitask_model.keras"
+        self.nail_filename = "model_anemia_hb.h5"
 
     def _get_model_dir(self) -> str:
         service_dir = os.path.dirname(os.path.abspath(__file__))
